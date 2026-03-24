@@ -1,26 +1,33 @@
-//frontend/src/proxy.ts
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const locales = ["en", "pt", "fr"];
 const defaultLocale = "en";
 
 function getPreferredLocale(request: NextRequest): string {
-  const acceptLanguage = request.headers.get("accept-language");
-  if (!acceptLanguage) return defaultLocale;
+  const acceptLanguage = request.headers.get("accept-language") || "";
   if (acceptLanguage.includes("pt")) return "pt";
   if (acceptLanguage.includes("fr")) return "fr";
   return defaultLocale;
 }
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Skip static files, api routes, etc.
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.includes(".") ||
+    pathname === "/favicon.ico"
+  ) {
+    return;
+  }
 
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`,
   );
 
-  if (pathnameHasLocale) return;
+  if (pathnameHasLocale) return NextResponse.next();
 
   const locale = getPreferredLocale(request);
   request.nextUrl.pathname = `/${locale}${pathname}`;
