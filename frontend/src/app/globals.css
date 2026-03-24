@@ -1,0 +1,59 @@
+/* frontend/src/app/globals.css */
+@import "tailwindcss";
+
+@theme {
+  --color-background: #001514;
+  --color-foreground: #fbfffe;
+  --font-chillax: var(--font-chillax), sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+@layer components {
+  /* Reusable semantic classes – no more copy-paste hell */
+
+  .game-title {
+    @apply font-bold text-2xl sm:text-4xl tracking-tight mb-2;
+  }
+  .token-tray {
+    @apply flex gap-2 sm:gap-4 flex-wrap justify-center p-4 max-w-sm sm:max-w-none;
+  }
+}
+
+/* Keep your existing animations */
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-8px);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+  75% {
+    transform: translateX(-8px);
+  }
+}
+.animate-pop-in {
+  animation: pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.shake-wrapper {
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}

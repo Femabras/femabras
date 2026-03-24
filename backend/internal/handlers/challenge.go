@@ -1,0 +1,74 @@
+// femabras/backend/internal/handlers/challenge.go
+package handlers
+
+import (
+	"net/http"
+	"sort"
+	"time"
+
+	"github.com/Femabras/femabras/backend/internal/models"
+	"github.com/Femabras/femabras/backend/internal/services"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type ChallengeHandler struct {
+	DB *gorm.DB
+}
+
+func (h *ChallengeHandler) GetDailyChallenge(c *gin.Context) {
+	var challenge models.Challenge
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+
+	err := h.DB.Where("release_date = ? AND is_active = ?", today, true).First(&challenge).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "No active challenge for today"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		}
+		return
+	}
+
+	// Build visible digits (unique set, sorted)
+	digitSet := make(map[rune]bool)
+	for _, r := range challenge.SecretCode {
+		digitSet[r] = true
+	}
+
+	digits := make([]string, 0, len(digitSet))
+	for r := range digitSet {
+		digits = append(digits, string(r))
+	}
+
+	// Sort for consistent response
+	sort.Strings(digits)
+
+	c.JSON(http.StatusOK, gin.H{
+		"slots":  len(challenge.SecretCode),
+		"date":   today.Format("2006-01-02"),
+		"digits": digits,
+	})
+}
+
+func (h *ChallengeHandler) GetAttempts(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	todayStr := time.Now().UTC().Format("2006-01-02")
+
+	// Fetch the absolute truth from Redis (or the local fallback)
+	attempts, err := services.GetOrCreateAttempts(c.Request.Context(), userID, todayStr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch attempts"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"remaining_attempts": attempts,
+	})
+}
