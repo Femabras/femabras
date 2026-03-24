@@ -1,4 +1,3 @@
-//frontend/src/modules/challenge/components/game-board.client.tsx
 "use client";
 
 import { useRef } from "react";
@@ -28,13 +27,16 @@ export function GameBoard({
   isAuthenticated,
   dict,
 }: GameBoardProps) {
-  const inputRefs = useRef<(HTMLInputElement | null)[]>(
-    new Array(challenge.slots).fill(null),
-  );
+  // 1. HOOKS MUST BE AT THE TOP
+  // We provide fallbacks (0, [], {}) so the hook doesn't crash if props are missing
   const { state, actions } = useGameEngine(
-    challenge.slots,
-    challenge.digits,
-    dict,
+    challenge?.slots || 0,
+    challenge?.digits || [],
+    dict || {},
+  );
+
+  const inputRefs = useRef<(HTMLInputElement | null)[]>(
+    new Array(challenge?.slots || 0).fill(null),
   );
 
   const sensors = useSensors(
@@ -44,9 +46,36 @@ export function GameBoard({
     }),
   );
 
+  // 2. NOW WE CAN DO THE CONDITIONAL RETURN
+  // This protects the JSX from rendering with undefined data
+  if (!dict || !challenge) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-100px">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="h-12 w-48 bg-white/5 rounded-xl" />
+          <div className="h-24 w-64 bg-white/5 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  // 3. LOGIC CONTINUES NORMALLY
   const activeItem = state.trayDigits.find((d) => d.id === state.activeDragId);
   const showTray =
     !state.isComplete && !state.hasWon && !state.authPrompt.isActive;
+
+  const handleLogout = async () => {
+    try {
+      await logoutAction();
+      sessionStorage.removeItem("femabras_saved_guess");
+      const currentPath = window.location.pathname;
+      const locale = currentPath.split("/")[1] || "en";
+      window.location.href = `/${locale}`;
+    } catch (error) {
+      console.error("Logout failed:", error);
+      window.location.href = "/";
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center touch-none w-full relative min-h-25">
@@ -62,13 +91,7 @@ export function GameBoard({
             </span>
           </div>
           <button
-            onClick={async () => {
-              await logoutAction();
-
-              sessionStorage.removeItem("femabras_saved_guess");
-
-              window.location.href = "/";
-            }}
+            onClick={handleLogout}
             className="pointer-events-auto px-4 py-2 sm:px-5 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-foreground/50 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20">
             {dict.logout}
           </button>
@@ -126,7 +149,6 @@ export function GameBoard({
             ) : null)}
         </div>
 
-        {/* 🟢 CONDITIONAL: OUT OF ATTEMPTS OR SLOTS 🟢 */}
         <div
           className="flex flex-col items-center mb-10 sm:mb-12 w-full transition-opacity"
           style={{ opacity: state.authPrompt.isActive ? 0.1 : 1 }}>
@@ -138,11 +160,9 @@ export function GameBoard({
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 w-full mt-4">
-                {/* 2. Use the new Smart Component! */}
                 <AdButton
                   label={dict.btnWatchAd}
                   onRewardGranted={(newAttempts: number) => {
-                    // This seamlessly updates the state, un-locking the board instantly!
                     actions.setAttempts(newAttempts);
                   }}
                 />
@@ -202,7 +222,6 @@ export function GameBoard({
           )}
         </div>
 
-        {/* 🟢 CONDITIONAL: HIDE TRAY IF OUT OF ATTEMPTS 🟢 */}
         <div
           className="min-h-25 flex flex-col items-center justify-center transition-opacity w-full"
           style={{ opacity: state.authPrompt.isActive ? 0.1 : 1 }}>
