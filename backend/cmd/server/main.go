@@ -26,7 +26,7 @@ import (
 func main() {
 
 	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Unable to locate the .env path: %v", err)
+		log.Printf("Unable to locate the .env path: %v", err)
 		return
 	}
 
