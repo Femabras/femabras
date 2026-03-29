@@ -22,7 +22,12 @@
     "logout": "Sair",
     "outOfAttemptsMsg": "Usou todas as suas tentativas de hoje. Desbloqueie mais para continuar a jogar!",
     "btnWatchAd": "Ver Anúncio (+1)",
-    "btnBuyAttempts": "Comprar Tentativas"
+    "btnBuyAttempts": "Comprar Tentativas",
+    "podiumTitle": "Desafio Conquistado!",
+    "podiumSubtitle": "O código secreto de hoje foi decifrado por",
+    "podiumFallbackName": "Herói Anónimo",
+    "podiumNext": "Novo desafio amanhã à meia-noite UTC.",
+    "podiumRegisterBtn": "Criar conta para ser notificado!"
   },
   "auth": {
     "loginTitle": "Bem-vindo de volta",

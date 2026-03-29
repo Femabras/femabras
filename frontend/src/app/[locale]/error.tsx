@@ -1,10 +1,9 @@
-//frontend/src/app/[locale]/error.tsx
+//femabras/frontend/src/app/[locale]/error.tsx
 "use client";
 
 import { useEffect } from "react";
 import { Button } from "@/shared/components/ui/button";
 
-// Lightweight, dependency-free dictionary for the error boundary
 const errorTranslations = {
   en: {
     message: "Something went wrong.",

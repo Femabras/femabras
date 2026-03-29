@@ -1,3 +1,4 @@
+//femabras/frontend/scr/modules/challenge/components/game-board.client.tsx
 "use client";
 
 import { useRef } from "react";
@@ -27,12 +28,11 @@ export function GameBoard({
   isAuthenticated,
   dict,
 }: GameBoardProps) {
-  // 1. HOOKS MUST BE AT THE TOP
-  // We provide fallbacks (0, [], {}) so the hook doesn't crash if props are missing
   const { state, actions } = useGameEngine(
     challenge?.slots || 0,
     challenge?.digits || [],
     dict || {},
+    isAuthenticated,
   );
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>(
@@ -46,8 +46,6 @@ export function GameBoard({
     }),
   );
 
-  // 2. NOW WE CAN DO THE CONDITIONAL RETURN
-  // This protects the JSX from rendering with undefined data
   if (!dict || !challenge) {
     return (
       <div className="flex flex-col items-center justify-center min-h-100px">
@@ -59,7 +57,6 @@ export function GameBoard({
     );
   }
 
-  // 3. LOGIC CONTINUES NORMALLY
   const activeItem = state.trayDigits.find((d) => d.id === state.activeDragId);
   const showTray =
     !state.isComplete && !state.hasWon && !state.authPrompt.isActive;
@@ -68,6 +65,8 @@ export function GameBoard({
     try {
       await logoutAction();
       sessionStorage.removeItem("femabras_saved_guess");
+      localStorage.removeItem("femabras_attempts"); // Clean slate fix
+
       const currentPath = window.location.pathname;
       const locale = currentPath.split("/")[1] || "en";
       window.location.href = `/${locale}`;
@@ -79,7 +78,6 @@ export function GameBoard({
 
   return (
     <div className="flex flex-col items-center justify-center touch-none w-full relative min-h-25">
-      {/* HEADER FOR LOGGED IN USERS */}
       {isAuthenticated && (
         <div className="fixed top-4 left-0 w-full px-4 sm:px-8 flex justify-between items-center z-40 pointer-events-none">
           <div className="pointer-events-auto flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md shadow-lg">

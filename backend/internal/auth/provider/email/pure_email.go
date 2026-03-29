@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/smtp"
 
-	"github.com/Femabras/femabras/backend/internal/config"
+	"github.com/Femabras/femabras/internal/config"
 )
 
 type EmailProvider struct {

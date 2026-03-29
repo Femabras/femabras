@@ -1,4 +1,4 @@
-//frontend/src/modules/challenge/components/auth-overlay.client.tsx
+//femabras/frontend/src/modules/challenge/components/auth-overlay.client.tsx
 "use client";
 
 import { Button } from "@/shared/components/ui/button";

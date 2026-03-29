@@ -4,7 +4,7 @@ package sms
 import (
 	"context"
 	"fmt"
-	"github.com/Femabras/femabras/backend/internal/config"
+	"github.com/Femabras/femabras/internal/config"
 	"net/smtp"
 	"strings"
 )

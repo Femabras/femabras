@@ -1,4 +1,4 @@
-//frontend/src/app/[locale]/register/page.tsx
+//femabras/frontend/src/app/[locale]/register/page.tsx
 import { getDictionary } from "@/i18n/get-dictionary";
 import { RegisterForm } from "@/modules/auth/components/register-form.client";
 import Link from "next/link";

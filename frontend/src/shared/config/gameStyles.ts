@@ -1,15 +1,30 @@
-//frontend/src/shared/config/gameStyles.ts
+//femabras/frontend/src/shared/config/gameStyles.ts
 import { cn } from "@/shared/lib/utils";
 
 export const GAME = {
   slot: (isShaking: boolean, isOver: boolean, hasValue: boolean) =>
     cn(
-      "relative flex w-full max-w-20 aspect-4/5 items-center justify-center rounded-lg border-2 border-dashed transition-colors duration-300",
+      // We removed border-dashed from the base class so it doesn't conflict
+      "relative flex w-full max-w-20 aspect-4/5 items-center justify-center rounded-lg border-2 transition-all duration-300",
+
+      // 🔴 ERROR STATE: Transparent red background, solid red border, soft red glow
       isShaking &&
-        "border-red-500 border-opacity-100 border-[3px] bg-transparent",
-      !isShaking && hasValue && "border-foreground bg-foreground",
-      !isShaking && !hasValue && isOver && "border-foreground bg-foreground/10",
-      !isShaking && !hasValue && !isOver && "border-gray-400 bg-transparent",
+        "border-red-500 bg-red-500/15 border-solid shadow-lg shadow-red-500/20",
+
+      // ⚪ FILLED STATE: Solid foreground
+      !isShaking && hasValue && "border-foreground bg-foreground border-solid",
+
+      // 👻 HOVER STATE (Dragging over): Slight foreground glow
+      !isShaking &&
+        !hasValue &&
+        isOver &&
+        "border-foreground/50 bg-foreground/10 border-dashed",
+
+      // ⬛ EMPTY STATE: Matches your exact #fbfffe palette with 20% opacity instead of generic gray
+      !isShaking &&
+        !hasValue &&
+        !isOver &&
+        "border-foreground/20 bg-transparent border-dashed",
     ),
   number: (isDragging: boolean) =>
     cn(

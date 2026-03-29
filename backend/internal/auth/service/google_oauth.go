@@ -2,7 +2,7 @@
 package service
 
 import (
-	"github.com/Femabras/femabras/backend/internal/config"
+	"github.com/Femabras/femabras/internal/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )

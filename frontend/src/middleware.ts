@@ -1,3 +1,4 @@
+//femabras/frontend/src/middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 
 const locales = ["en", "pt", "fr"];
@@ -13,7 +14,6 @@ function getPreferredLocale(request: NextRequest): string {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip static files, api routes, etc.
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||

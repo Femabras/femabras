@@ -1,4 +1,4 @@
-//frontend/src/modules/challenge/components/challenge-slot.client.tsx
+//femabras/frontend/src/modules/challenge/components/challenge-slot.client.tsx
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";

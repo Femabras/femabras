@@ -1,11 +1,21 @@
-//frontend/src/modules/challenge/types.ts
+//femabras/frontend/src/modules/challenge/types.ts
 import type { Dictionary } from "@/i18n/get-dictionary";
 
-export interface DailyChallengeResponse {
-  slots: number;
-  date: string;
-  digits: string[];
-}
+export type DailyChallengeResponse =
+  | {
+      status: "active";
+      slots: number;
+      date: string;
+      digits: string[];
+    }
+  | {
+      status: "solved";
+      message: string;
+      winner: {
+        name: string | null;
+        picture: string | null;
+      };
+    };
 
 export interface GuessResponse {
   status: "success" | "incorrect";
@@ -22,7 +32,7 @@ export interface AuthOverlayProps {
 }
 
 export interface GameBoardProps {
-  challenge: DailyChallengeResponse;
+  challenge: Extract<DailyChallengeResponse, { status: "active" }>;
   isAuthenticated: boolean;
   dict: Dictionary["challenge"];
 }

@@ -10,7 +10,10 @@ import (
 type Challenge struct {
 	gorm.Model
 	SecretCode  string    `gorm:"not null;size:32"`
-	Difficulty  int       `gorm:"not null;default:1"` // 1=3 digits, 2=4, ..., up to 8
+	Difficulty  int       `gorm:"not null;default:1"`
 	ReleaseDate time.Time `gorm:"type:date;uniqueIndex;not null"`
 	IsActive    bool      `gorm:"default:true"`
+	WinnerID    *string   `gorm:"index"`
+	WinnerName  *string   `gorm:"size:255"`
+	WinnerPic   *string   `gorm:"size:255"`
 }

@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/Femabras/femabras/backend/internal/models"
+	"github.com/Femabras/femabras/internal/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

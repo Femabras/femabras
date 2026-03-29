@@ -35,6 +35,13 @@ frontend/build/
 frontend/coverage/
 .vercel/
 *.tsbuildinfo
+frontend/.turbo/
+frontend/.eslintcache
+frontend/.cache/
+
+# AI agent / prompt files (optional)
+frontend/AGENTS.md
+frontend/CLAUDE.md
 
 # Note: next-env.d.ts is NOT ignored. It should be committed.
 
@@ -60,3 +67,13 @@ backend/tmp/
 backend/main
 backend/server
 backend/tests/
+backend/coverage.out
+backend/*.prof
+
+# Docker / compose local overrides (if you ever create them)
+docker-compose.override.yml
+docker-compose.*.yml
+
+# General
+*.local
+.envrc

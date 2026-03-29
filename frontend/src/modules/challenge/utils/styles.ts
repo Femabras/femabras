@@ -1,4 +1,4 @@
-//frontend/src/modules/challenge/utils/styles.ts
+//femabras/frontend/src/modules/challenge/utils/styles.ts
 export const UI = {
   authOverlay:
     "absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-md rounded-2xl p-6",

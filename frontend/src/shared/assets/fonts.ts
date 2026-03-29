@@ -1,4 +1,4 @@
-//frontend/src/shared/assets/fonts.ts
+//femabras/frontend/src/shared/assets/fonts.ts
 import localFont from "next/font/local";
 
 export const chillax = localFont({

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Femabras/femabras/backend/internal/auth/service"
-	"github.com/Femabras/femabras/backend/internal/auth/types"
-	"github.com/Femabras/femabras/backend/internal/config"
+	"github.com/Femabras/femabras/internal/auth/service"
+	"github.com/Femabras/femabras/internal/auth/types"
+	"github.com/Femabras/femabras/internal/config"
 	"github.com/gin-gonic/gin"
 )
 

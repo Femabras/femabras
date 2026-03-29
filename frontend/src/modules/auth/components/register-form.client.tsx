@@ -1,4 +1,4 @@
-//frontend/src/modules/auth/components/register-form.client.tsx
+//femabras/frontend/src/modules/auth/components/register-form.client.tsx
 "use client";
 
 import { useState } from "react";
@@ -18,7 +18,6 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
   const [step, setStep] = useState<"register" | "otp">("register");
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
 
-  // FIXED: Using React.SyntheticEvent
   const handleRegister = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);

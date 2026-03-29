@@ -1,4 +1,4 @@
-//frontend/src/i18n/get-dictionary.ts
+//femabras/frontend/src/i18n/get-dictionary.ts
 import "server-only";
 
 const dictionaries = {

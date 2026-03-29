@@ -1,4 +1,4 @@
-//frontend/src/modules/auth/services/auth.client.service.ts
+//femabras/frontend/src/modules/auth/services/auth.client.service.ts
 import { APIError } from "@/shared/lib/errors";
 import { env } from "@/shared/config/env";
 
@@ -8,7 +8,7 @@ export const authClientService = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier, password }),
-      credentials: "include", // CRITICAL: Tells browser to accept the auth_token cookie
+      credentials: "include",
     });
 
     if (!res.ok) {
@@ -29,7 +29,7 @@ export const authClientService = {
       const err = await res.json().catch(() => null);
       throw new APIError(err?.error || "Registration failed", res.status);
     }
-    return res.json(); // Returns { message, user_id }
+    return res.json();
   },
 
   async verifyOTP(userId: string, otp: string) {
@@ -37,7 +37,7 @@ export const authClientService = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: userId, otp }),
-      credentials: "include", // CRITICAL: Accepts the cookie after verifying
+      credentials: "include",
     });
 
     if (!res.ok) {

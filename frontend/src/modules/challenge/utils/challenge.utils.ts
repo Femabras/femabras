@@ -1,4 +1,4 @@
-//frontend/src/modules/challenge/utils/challenge.utils.ts
+//femabras/frontend/src/modules/challenge/utils/challenge.utils.ts
 import type { Dictionary } from "@/i18n/get-dictionary";
 import type { SlotItem } from "../types";
 

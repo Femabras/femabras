@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Femabras/femabras/backend/internal/models"
-	"github.com/Femabras/femabras/backend/internal/services"
+	"github.com/Femabras/femabras/internal/models"
+	"github.com/Femabras/femabras/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,7 +28,6 @@ func (h *ChallengeHandler) SubmitGuess(c *gin.Context) {
 
 	todayStr := time.Now().UTC().Format("2006-01-02")
 
-	// === REDIS + FALLBACK ===
 	remaining, err := services.DecrementAndSave(c.Request.Context(), userID, todayStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Service temporarily unavailable"})
@@ -39,8 +38,8 @@ func (h *ChallengeHandler) SubmitGuess(c *gin.Context) {
 		return
 	}
 
-	// === YOUR ORIGINAL VALIDATION ===
-	var challenge models.Challenge // ← this fixes "undefined: challenge"
+	var challenge models.Challenge
+
 	if err := h.DB.Where("release_date = ? AND is_active = ?", time.Now().UTC().Truncate(24*time.Hour), true).First(&challenge).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "No active challenge today"})
 		return
@@ -51,7 +50,6 @@ func (h *ChallengeHandler) SubmitGuess(c *gin.Context) {
 		return
 	}
 
-	// digit validation...
 	allowed := make(map[rune]bool)
 	for _, r := range challenge.SecretCode {
 		allowed[r] = true
@@ -64,10 +62,30 @@ func (h *ChallengeHandler) SubmitGuess(c *gin.Context) {
 	}
 
 	status := "incorrect"
+
 	if req.Guess == challenge.SecretCode {
 		status = "success"
 		services.LockOnSuccess(context.Background(), userID, todayStr)
-		h.DB.Model(&challenge).Update("is_active", false)
+
+		// Fetch the winning user's details
+		var user models.User
+		h.DB.First(&user, userID)
+
+		// Respect privacy: Use their Name, fallback to "Anonymous Hero"
+		winnerName := "Anonymous Hero"
+
+		if user.Name != "" {
+			winnerName = user.Name
+		}
+
+		// Update the challenge with the winner's info
+		h.DB.Model(&challenge).Updates(map[string]interface{}{
+			"is_active":   false,
+			"winner_id":   userID,
+			"winner_name": winnerName,
+			"winner_pic":  user.Picture,
+		})
+
 		remaining = 0
 	}
 

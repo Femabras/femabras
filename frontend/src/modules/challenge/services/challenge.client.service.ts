@@ -1,4 +1,4 @@
-//frontend/src/modules/challenge/services/challenge.client.service.ts
+//femabras/frontend/src/modules/challenge/services/challenge.client.service.ts
 import { APIError } from "@/shared/lib/errors";
 import { env } from "@/shared/config/env";
 import { CHALLENGE_CONFIG } from "@/shared/config/constants";

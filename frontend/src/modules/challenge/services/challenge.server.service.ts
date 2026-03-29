@@ -1,4 +1,4 @@
-//frontend/src/modules/challenge/services/challenge.server.service.ts
+//femabras/frontend/src/modules/challenge/services/challenge.server.service.ts
 
 import { DailyChallengeResponse } from "../types";
 import { APIError } from "@/shared/lib/errors";
@@ -6,7 +6,6 @@ import { APIError } from "@/shared/lib/errors";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export const challengeServerService = {
-
   async getDailyChallenge(): Promise<DailyChallengeResponse> {
     try {
       const res = await fetch(`${BASE_URL}/challenge`, {

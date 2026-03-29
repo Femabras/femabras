@@ -1,4 +1,4 @@
-//frontend/src/modules/challenge/hooks/useGameEngine.ts
+//femabras/frontend/src/modules/challenge/hooks/useGameEngine.ts
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { DragEndEvent, DragStartEvent, DragOverEvent } from "@dnd-kit/core";
@@ -9,11 +9,13 @@ import { APIError } from "@/shared/lib/errors";
 import { CHALLENGE_CONFIG } from "@/shared/config/constants";
 import { challengeUtils } from "../utils/challenge.utils";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import { env } from "@/shared/config/env";
 
 export function useGameEngine(
   slotsCount: number,
   digits: string[],
   dict: Dictionary["challenge"],
+  isAuthenticated: boolean,
 ) {
   const router = useRouter();
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,10 +36,41 @@ export function useGameEngine(
   const [isOverSlot, setIsOverSlot] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // --- FIXED: Sync attempts from localStorage on initial load ---
   useEffect(() => {
+    if (isAuthenticated) return;
     setAttempts(challengeClientService.getTodayAttempts());
-  }, []);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    challengeClientService.fetchLiveAttempts().then((liveAttempts) => {
+      setAttempts(liveAttempts);
+      challengeClientService.saveTodayAttempts(liveAttempts);
+    });
+  }, [isAuthenticated]);
+
+  // Combined Auth & Restore Sequence logic
+  useEffect(() => {
+    if (isAuthenticated) {
+      setHasWon(false);
+      setIsShaking(false);
+      setAuthPrompt({ isActive: false, countdown: 5 });
+
+      const saved = sessionStorage.getItem("femabras_saved_guess");
+      if (saved) {
+        try {
+          const parsedSlots = JSON.parse(saved);
+          setSlots(parsedSlots);
+          sessionStorage.removeItem("femabras_saved_guess"); // Clean up
+        } catch {
+          setSlots(Array(slotsCount).fill(null));
+        }
+      } else {
+        setSlots(Array(slotsCount).fill(null));
+      }
+    }
+  }, [isAuthenticated, slotsCount]);
 
   const trayDigits = useMemo(() => challengeUtils.createTray(digits), [digits]);
   const isComplete = slots.length > 0 && slots.every((slot) => slot !== null);
@@ -70,13 +103,36 @@ export function useGameEngine(
     toastTimeoutRef.current = setTimeout(() => setToastMsg(null), 3000);
   };
 
+  // The Free-Tier Realtime Pulse
+  useEffect(() => {
+    if (hasWon || isOutOfAttempts) return;
+
+    const pulse = setInterval(async () => {
+      try {
+        const res = await fetch(`${env.apiUrl}/challenge`, {
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === "solved") {
+            router.refresh();
+          }
+        }
+      } catch (e) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Background pulse failed to reach server:", e);
+        }
+      }
+    }, 20000);
+
+    return () => clearInterval(pulse);
+  }, [hasWon, isOutOfAttempts, router]);
+
   const submitSequence = async () => {
     const guess = slots.map((s) => s?.val ?? "").join("");
     setIsSubmitting(true);
     try {
       const res = await challengeClientService.submitGuess(guess);
-
-      // --- FIXED: Sync the absolute truth from the Go Backend ---
       setAttempts(res.remaining_attempts);
       challengeClientService.saveTodayAttempts(res.remaining_attempts);
 
@@ -86,10 +142,11 @@ export function useGameEngine(
       if (error instanceof APIError && error.status === 401) {
         setAuthPrompt({ isActive: true, countdown: 5 });
       } else if (error instanceof APIError && error.status === 403) {
-        // Backend caught them trying to cheat the local storage
         setAttempts(0);
         challengeClientService.saveTodayAttempts(0);
         triggerError();
+      } else if (error instanceof APIError && error.status === 404) {
+        router.refresh(); // Someone else won
       } else {
         triggerError();
       }
@@ -104,8 +161,6 @@ export function useGameEngine(
   };
 
   const triggerError = () => {
-    // --- FIXED: Removed the naive `setAttempts(prev - 1)` from here. ---
-    // We now rely entirely on the backend's response!
     setIsShaking(true);
     setTimeout(() => {
       setIsShaking(false);

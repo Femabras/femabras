@@ -22,7 +22,12 @@
     "logout": "Déconnexion",
     "outOfAttemptsMsg": "Vous avez utilisé toutes vos tentatives pour aujourd'hui. Débloquez-en plus pour continuer à jouer !",
     "btnWatchAd": "Voir une pub (+1)",
-    "btnBuyAttempts": "Acheter des tentatives"
+    "btnBuyAttempts": "Acheter des tentatives",
+    "podiumTitle": "Défi Relevé !",
+    "podiumSubtitle": "Le code secret d'aujourd'hui a été déchiffré par",
+    "podiumFallbackName": "Héros Anonyme",
+    "podiumNext": "Nouveau défi demain à minuit UTC.",
+    "podiumRegisterBtn": "Créer un compte pour être averti !"
   },
   "auth": {
     "loginTitle": "Bon retour",

@@ -2,9 +2,9 @@
 package provider
 
 import (
-	"github.com/Femabras/femabras/backend/internal/auth/provider/email"
-	"github.com/Femabras/femabras/backend/internal/auth/provider/sms"
-	"github.com/Femabras/femabras/backend/internal/config"
+	"github.com/Femabras/femabras/internal/auth/provider/email"
+	"github.com/Femabras/femabras/internal/auth/provider/sms"
+	"github.com/Femabras/femabras/internal/config"
 )
 
 type OTPFactory interface {

@@ -1,4 +1,4 @@
-//frontend/src/modules/challenge/components/draggable-number.client.tsx
+//femabras/frontend/src/modules/challenge/components/draggable-number.client.tsx
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";

@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	// "gorm.io/gorm"
 )
 
 var rdb *redis.Client
 
 func InitRedis(url string) {
 	if url == "" {
-		rdb = nil // fallback mode
+		rdb = nil // fallback mode (local dev without Redis)
 		return
 	}
 	opt, _ := redis.ParseURL(url)
@@ -23,23 +22,43 @@ func InitRedis(url string) {
 
 func GetOrCreateAttempts(ctx context.Context, userID, date string) (int, error) {
 	if rdb == nil {
-		return 5, nil // DB fallback
+		return 5, nil
 	}
 	key := fmt.Sprintf("attempts:%s:%s", userID, date)
+
 	val, err := rdb.Get(ctx, key).Int()
 	if err == redis.Nil {
+		// First time this user plays today → initialize with 5 attempts
 		rdb.Set(ctx, key, 5, 26*time.Hour)
 		return 5, nil
 	}
-	return val, err
+	if err != nil {
+		return 0, fmt.Errorf("redis get error: %w", err)
+	}
+	return val, nil
 }
 
 func DecrementAndSave(ctx context.Context, userID, date string) (int, error) {
 	if rdb == nil {
-		return 4, nil // fake fallback
+		return 4, nil // fallback for local testing
 	}
 	key := fmt.Sprintf("attempts:%s:%s", userID, date)
-	rem, _ := rdb.Decr(ctx, key).Result()
+
+	// Ensure the key exists with default 5 before decrementing
+	exists, err := rdb.Exists(ctx, key).Result()
+	if err != nil {
+		return 0, fmt.Errorf("redis exists error: %w", err)
+	}
+	if exists == 0 {
+		if err := rdb.Set(ctx, key, 5, 26*time.Hour).Err(); err != nil {
+			return 0, fmt.Errorf("redis set default error: %w", err)
+		}
+	}
+
+	rem, err := rdb.Decr(ctx, key).Result()
+	if err != nil {
+		return 0, fmt.Errorf("redis decr error: %w", err)
+	}
 	rdb.Expire(ctx, key, 26*time.Hour)
 	return int(rem), nil
 }
@@ -52,17 +71,8 @@ func LockOnSuccess(ctx context.Context, userID, date string) {
 
 func IncrementAttemptAndAdsWatched(ctx context.Context, userID, date string) error {
 	if rdb == nil {
-		return nil // Fake fallback for local testing when REDIS_URL is empty
+		return nil
 	}
-
 	key := fmt.Sprintf("attempts:%s:%s", userID, date)
-
-	// Increment the attempts by 1
-	err := rdb.Incr(ctx, key).Err()
-	if err != nil {
-		return err
-	}
-
-	// You could also track 'ads_watched' here in another Redis key if you want a daily limit!
-	return nil
+	return rdb.Incr(ctx, key).Err()
 }

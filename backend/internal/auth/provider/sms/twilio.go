@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Femabras/femabras/backend/internal/config"
+	"github.com/Femabras/femabras/internal/config"
 )
 
 type TwilioProvider struct {

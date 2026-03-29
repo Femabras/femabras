@@ -22,7 +22,12 @@
     "logout": "Log out",
     "outOfAttemptsMsg": "You've used all your attempts for today. Unlock more to keep guessing!",
     "btnWatchAd": "Watch Ad (+1)",
-    "btnBuyAttempts": "Buy Attempts"
+    "btnBuyAttempts": "Buy Attempts",
+    "podiumTitle": "Challenge Conquered!",
+    "podiumSubtitle": "Today's secret code was cracked by",
+    "podiumFallbackName": "Anonymous Hero",
+    "podiumNext": "New challenge tomorrow at midnight UTC.",
+    "podiumRegisterBtn": "Create an account to be notified!"
   },
   "auth": {
     "loginTitle": "Welcome Back",

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Femabras/femabras/backend/internal/services"
+	"github.com/Femabras/femabras/internal/services"
 	"github.com/gin-gonic/gin"
 )
 

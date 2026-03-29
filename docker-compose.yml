@@ -1,0 +1,51 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: femabras-redis
+    restart: always
+    ports:
+      - "6379:6379"
+  db:
+    image: postgres:17-alpine
+    container_name: femabras-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-femabras}
+    ports:
+      - "5433:5433"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: femabras-api
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-femabras}?sslmode=disable
+      FRONTEND_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  frontend:
+    build: ./frontend
+    container_name: femabras-web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8080
+      # API_URL: http://femabras-api:8080
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

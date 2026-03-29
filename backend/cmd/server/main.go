@@ -10,25 +10,19 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Femabras/femabras/backend/internal/auth/provider"
-	"github.com/Femabras/femabras/backend/internal/auth/repository"
-	"github.com/Femabras/femabras/backend/internal/auth/service"
-	"github.com/Femabras/femabras/backend/internal/config"
-	"github.com/Femabras/femabras/backend/internal/database"
-	"github.com/Femabras/femabras/backend/internal/middleware"
-	"github.com/Femabras/femabras/backend/internal/routes"
-	"github.com/Femabras/femabras/backend/internal/services"
+	"github.com/Femabras/femabras/internal/auth/provider"
+	"github.com/Femabras/femabras/internal/auth/repository"
+	"github.com/Femabras/femabras/internal/auth/service"
+	"github.com/Femabras/femabras/internal/config"
+	"github.com/Femabras/femabras/internal/database"
+	"github.com/Femabras/femabras/internal/middleware"
+	"github.com/Femabras/femabras/internal/routes"
+	"github.com/Femabras/femabras/internal/services"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-
-	if err := godotenv.Load(); err != nil {
-		log.Printf("Unable to locate the .env path: %v", err)
-		return
-	}
 
 	cfg := config.Load()
 
@@ -63,7 +57,7 @@ func main() {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORS(cfg.FrontendURL))
-	r.Use(middleware.RateLimit())
+	// r.Use(middleware.RateLimit())
 
 	routes.Setup(r, db, &cfg, authSvc)
 

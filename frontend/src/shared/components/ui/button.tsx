@@ -1,4 +1,4 @@
-//frontend/src/shared/components/ui/button.tsx
+//femabras/frontend/src/shared/components/ui/button.tsx
 import { ButtonHTMLAttributes, forwardRef } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -7,11 +7,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = "", variant = "primary", children, ...props }, ref) => {
-    // Base classes applied to ALL buttons
     const baseClass =
       "w-full sm:w-auto px-10 sm:px-14 py-4 sm:py-5 font-black rounded-2xl transition-all uppercase tracking-widest active:scale-95 disabled:opacity-50";
 
-    // Variant-specific classes
     const variants = {
       primary: "bg-foreground text-background shadow-xl",
       secondary:

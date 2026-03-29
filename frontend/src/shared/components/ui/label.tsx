@@ -1,4 +1,4 @@
-//frontend/src/shared/components/ui/label.tsx
+//femabras/frontend/src/shared/components/ui/label.tsx
 import { LabelHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/shared/lib/utils";
 

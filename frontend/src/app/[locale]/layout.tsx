@@ -1,4 +1,4 @@
-//frontend/src/app/[locale]/layout.tsx
+//femabras/frontend/src/app/[locale]/layout.tsx
 import type { Metadata } from "next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { siteConfig } from "@/shared/config/site";

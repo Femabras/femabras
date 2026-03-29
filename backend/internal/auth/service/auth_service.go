@@ -11,11 +11,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/Femabras/femabras/backend/internal/auth/provider"
-	"github.com/Femabras/femabras/backend/internal/auth/repository"
-	"github.com/Femabras/femabras/backend/internal/auth/types"
-	"github.com/Femabras/femabras/backend/internal/config"
-	"github.com/Femabras/femabras/backend/internal/models"
+	"github.com/Femabras/femabras/internal/auth/provider"
+	"github.com/Femabras/femabras/internal/auth/repository"
+	"github.com/Femabras/femabras/internal/auth/types"
+	"github.com/Femabras/femabras/internal/config"
+	"github.com/Femabras/femabras/internal/models"
+	"github.com/Femabras/femabras/internal/services"
+
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -99,6 +101,9 @@ func (s *authService) Login(ctx context.Context, req types.LoginRequest) (string
 	if !user.PhoneVerified {
 		return "", errors.New("please verify your phone number first")
 	}
+	// After successful verification or login
+	todayStr := time.Now().UTC().Format("2006-01-02")
+	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr) // pre-create
 
 	return s.generateToken(user.ID)
 }
@@ -133,6 +138,10 @@ func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string
 	if err := s.repo.CreateUser(&user); err != nil {
 		return "", err
 	}
+
+	// After successful verification or login
+	todayStr := time.Now().UTC().Format("2006-01-02")
+	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr) // pre-create
 
 	_ = s.repo.DeletePendingUser(pending.ID)
 	return s.generateToken(user.ID)
@@ -180,6 +189,9 @@ func (s *authService) HandleGoogleCallback(ctx context.Context, code string) (st
 			return "", err
 		}
 	}
+	// After successful verification or login
+	todayStr := time.Now().UTC().Format("2006-01-02")
+	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr) // pre-create
 
 	return s.generateToken(user.ID)
 }

@@ -1,4 +1,4 @@
-//frontend/src/app/[locale]/login/page.tsx
+//femabras/frontend/src/app/[locale]/login/page.tsx
 import { getDictionary } from "@/i18n/get-dictionary";
 import { LoginForm } from "@/modules/auth/components/login-form.client";
 import Link from "next/link";
