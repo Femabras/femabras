@@ -1,4 +1,4 @@
-//femabras/frontend/src/middleware.ts
+//femabras/frontend/src/proxy.ts
 import { NextRequest, NextResponse } from "next/server";
 
 const locales = ["en", "pt", "fr"];
@@ -11,7 +11,7 @@ function getPreferredLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (
