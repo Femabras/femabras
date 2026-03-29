@@ -129,6 +129,10 @@ export function useGameEngine(
   }, [hasWon, isOutOfAttempts, router]);
 
   const submitSequence = async () => {
+    if (!isAuthenticated) {
+      setAuthPrompt({ isActive: true, countdown: 5 });
+      return;
+    }
     const guess = slots.map((s) => s?.val ?? "").join("");
     setIsSubmitting(true);
     try {
