@@ -6,7 +6,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/Femabras/femabras/internal/models"
 	"github.com/Femabras/femabras/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -18,20 +17,15 @@ type ChallengeHandler struct {
 }
 
 func (h *ChallengeHandler) GetDailyChallenge(c *gin.Context) {
-	var challenge models.Challenge
 
-	today := time.Now().UTC().Truncate(24 * time.Hour)
-
-	err := h.DB.Where("release_date = ?", today).First(&challenge).Error
+	challengePointer, err := services.CreateOrGetTodayChallenge(h.DB)
 
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "No active challenge for today"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load daily challenge"})
 		return
 	}
+
+	challenge := *challengePointer // Dereference the pointer
 
 	if !challenge.IsActive {
 		c.JSON(http.StatusOK, gin.H{
@@ -62,7 +56,7 @@ func (h *ChallengeHandler) GetDailyChallenge(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "active",
 		"slots":  len(challenge.SecretCode),
-		"date":   today.Format("2006-01-02"),
+		"date":   challenge.ReleaseDate.Format("2006-01-02"),
 		"digits": digits,
 	})
 }
