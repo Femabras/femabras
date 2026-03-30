@@ -86,6 +86,7 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
               id="email"
               name="email"
               type="email"
+              autoComplete="email"
               placeholder={dict.emailPlaceholder}
               required
               disabled={isLoading}
@@ -97,6 +98,7 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
               id="phone"
               name="phone"
               type="tel"
+              autoComplete="tel"
               placeholder={dict.phonePlaceholder}
               required
               disabled={isLoading}
@@ -108,6 +110,7 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
               id="password"
               name="password"
               type="password"
+              autoComplete="new-password"
               placeholder={dict.passwordMin}
               required
               minLength={8}
@@ -130,6 +133,7 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
               name="otp"
               type="text"
               inputMode="numeric"
+              autoComplete="one-time-code"
               maxLength={6}
               placeholder="000000"
               className="text-center text-2xl tracking-widest font-black"

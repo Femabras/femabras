@@ -64,6 +64,7 @@ export function LoginForm({ dict }: { dict: Dictionary["auth"] }) {
           <Input
             id="email"
             name="email"
+            autoComplete="email"
             type="text"
             placeholder={dict.emailPlaceholder}
             required
@@ -77,6 +78,7 @@ export function LoginForm({ dict }: { dict: Dictionary["auth"] }) {
             id="password"
             name="password"
             type="password"
+            autoComplete="current-password"
             placeholder={dict.passwordPlaceholder}
             required
             disabled={isLoading}
