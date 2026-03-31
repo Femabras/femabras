@@ -27,7 +27,7 @@ func HandleVerificationEmailTask(ctx context.Context, t *asynq.Task) error {
 
 	// 1. Build the Resend API Payload
 	requestBody, err := json.Marshal(map[string]interface{}{
-		"from":    "Femabras Security <onboarding@resend.dev>", // Change to your verified domain later
+		"from":    "Femabras Security <security@auth.femabras.com>",
 		"to":      []string{payload.Email},
 		"subject": "Your Femabras Secret Code",
 		"html":    fmt.Sprintf("<strong>%s</strong> is your verification code. Welcome to the challenge!", payload.OTP),
