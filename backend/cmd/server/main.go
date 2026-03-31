@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -18,12 +19,39 @@ import (
 	"github.com/Femabras/femabras/internal/middleware"
 	"github.com/Femabras/femabras/internal/routes"
 	"github.com/Femabras/femabras/internal/services"
+	"github.com/Femabras/femabras/internal/worker"
+	"github.com/hibiken/asynq"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 
+	redisURL := os.Getenv("REDIS_URL") // From Railway
+	redisOpt, err := asynq.ParseRedisURI(redisURL)
+	if err != nil {
+		panic("Failed to parse Redis URI: " + err.Error())
+	}
+
+	// 2. Initialize Asynq Client (for enqueuing tasks)
+	asynqClient := asynq.NewClient(redisOpt)
+	defer asynqClient.Close()
+
+	// 3. Initialize Asynq Server (the background worker)
+	asynqServer := asynq.NewServer(redisOpt, asynq.Config{
+		Concurrency: 10, // Process up to 10 emails at the exact same time
+	})
+
+	// 4. Map the tasks to their handler functions
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(worker.TypeSendVerificationEmail, worker.HandleVerificationEmailTask)
+
+	// 5. Start the worker in a separate Goroutine so it doesn't block the API!
+	go func() {
+		if err := asynqServer.Run(mux); err != nil {
+			fmt.Printf("could not start asynq server: %v\n", err)
+		}
+	}()
 	cfg := config.Load()
 
 	if cfg.JWTSecret == "" || cfg.DatabaseURL == "" {
@@ -42,8 +70,7 @@ func main() {
 	// Initialize Auth Dependencies (Moved out of routes to be accessible here)
 	authRepo := repository.NewAuthRepository(db)
 	authFactory := provider.NewFactory(&cfg)
-	authSvc := service.NewAuthService(authRepo, authFactory, &cfg)
-
+	authSvc := service.NewAuthService(authRepo, authFactory, &cfg, asynqClient)
 	// Initialize Challenges
 	_, err = services.CreateOrGetTodayChallenge(db)
 	if err != nil {

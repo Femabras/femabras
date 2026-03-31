@@ -17,8 +17,10 @@ import (
 	"github.com/Femabras/femabras/internal/config"
 	"github.com/Femabras/femabras/internal/models"
 	"github.com/Femabras/femabras/internal/services"
+	"github.com/Femabras/femabras/internal/worker"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/hibiken/asynq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -31,21 +33,23 @@ type AuthService interface {
 }
 
 type authService struct {
-	repo    repository.AuthRepository
-	factory provider.OTPFactory
-	cfg     *config.Config
+	repo        repository.AuthRepository
+	factory     provider.OTPFactory
+	cfg         *config.Config
+	asynqClient *asynq.Client // 🟢 Inject the Redis Queue Client
 }
 
-func NewAuthService(repo repository.AuthRepository, factory provider.OTPFactory, cfg *config.Config) AuthService {
+// 🟢 Updated constructor to accept the asynq.Client
+func NewAuthService(repo repository.AuthRepository, factory provider.OTPFactory, cfg *config.Config, asynqClient *asynq.Client) AuthService {
 	return &authService{
-		repo:    repo,
-		factory: factory,
-		cfg:     cfg,
+		repo:        repo,
+		factory:     factory,
+		cfg:         cfg,
+		asynqClient: asynqClient,
 	}
 }
 
 func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (uint, error) {
-	// 1. ADDED: Check if user already exists in the permanent table!
 	if _, err := s.repo.GetUserByIdentifier(req.Email); err == nil {
 		return 0, errors.New("an account with this email already exists")
 	}
@@ -69,7 +73,7 @@ func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (
 		return 0, errors.New("registration already in progress for this number")
 	}
 
-	// Send OTP
+	// 1. Handle SMS via Factory (HTTP APIs like Twilio are generally fast enough for synchronous calls)
 	if req.Phone != "" {
 		p := s.factory.GetProvider("twilio")
 		if err := p.Send(ctx, req.Phone, otpCode); err != nil {
@@ -77,10 +81,21 @@ func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (
 		}
 	}
 
+	// 2. Handle Email via Redis Queue (Enterprise pattern to avoid SMTP timeouts)
 	if req.Email != "" {
-		p := s.factory.GetProvider("email")
-		if err := p.Send(ctx, req.Email, otpCode); err != nil {
-			log.Printf("Email failed: %v", err)
+		if s.asynqClient != nil {
+			// 🟢 Fire and Forget: Push instantly to Redis
+			err := worker.EnqueueVerificationEmail(s.asynqClient, req.Email, otpCode)
+			if err != nil {
+				log.Printf("CRITICAL: Failed to queue email for %s: %v", req.Email, err)
+			}
+		} else {
+			// Fallback: If Asynq isn't wired up in main.go yet, use the old factory method
+			log.Println("⚠️ Asynq client not initialized, falling back to synchronous email provider")
+			p := s.factory.GetProvider("email")
+			if err := p.Send(ctx, req.Email, otpCode); err != nil {
+				log.Printf("Email failed: %v", err)
+			}
 		}
 	}
 
@@ -88,7 +103,6 @@ func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (
 }
 
 func (s *authService) Login(ctx context.Context, req types.LoginRequest) (string, error) {
-	// Try finding by phone first as it is primary
 	user, err := s.repo.GetUserByIdentifier(req.Identifier)
 	if err != nil {
 		return "", errors.New("invalid credentials")
@@ -101,9 +115,9 @@ func (s *authService) Login(ctx context.Context, req types.LoginRequest) (string
 	if !user.PhoneVerified {
 		return "", errors.New("please verify your phone number first")
 	}
-	// After successful verification or login
+
 	todayStr := time.Now().UTC().Format("2006-01-02")
-	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr) // pre-create
+	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr)
 
 	return s.generateToken(user.ID)
 }
@@ -126,7 +140,6 @@ func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string
 		return "", errors.New("invalid OTP")
 	}
 
-	// Create real user
 	user := models.User{
 		Phone:         pending.Phone,
 		PasswordHash:  pending.PasswordHash,
@@ -139,9 +152,8 @@ func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string
 		return "", err
 	}
 
-	// After successful verification or login
 	todayStr := time.Now().UTC().Format("2006-01-02")
-	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr) // pre-create
+	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr)
 
 	_ = s.repo.DeletePendingUser(pending.ID)
 	return s.generateToken(user.ID)
@@ -176,7 +188,6 @@ func (s *authService) HandleGoogleCallback(ctx context.Context, code string) (st
 		return "", err
 	}
 
-	// FIX: Handle pointer assignment for Google User
 	user, err := s.repo.GetUserByIdentifier(userInfo.Email)
 	if err != nil {
 		emailVal := userInfo.Email
@@ -189,9 +200,9 @@ func (s *authService) HandleGoogleCallback(ctx context.Context, code string) (st
 			return "", err
 		}
 	}
-	// After successful verification or login
+
 	todayStr := time.Now().UTC().Format("2006-01-02")
-	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr) // pre-create
+	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr)
 
 	return s.generateToken(user.ID)
 }
