@@ -23,6 +23,30 @@ func NewAuthHandler(svc service.AuthService, cfg *config.Config) *AuthHandler {
 	}
 }
 
+// 🟢 THE FIX: A dedicated helper method to handle the secure cookie logic
+func (h *AuthHandler) setAuthCookie(c *gin.Context, token string) {
+	isProd := h.cfg.FrontendURL != "http://localhost:3000"
+
+	cookieDomain := ""
+	sameSiteMode := http.SameSiteLaxMode
+
+	if isProd {
+		cookieDomain = ".femabras.com"
+		sameSiteMode = http.SameSiteNoneMode
+	}
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "auth_token",
+		Value:    token,
+		Path:     "/",
+		MaxAge:   86400,
+		HttpOnly: true,
+		Secure:   isProd,
+		Domain:   cookieDomain,
+		SameSite: sameSiteMode,
+	})
+}
+
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req types.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -55,15 +79,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "auth_token",
-		Value:    token,
-		Path:     "/",
-		MaxAge:   86400,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	// 🟢 Call the helper method
+	h.setAuthCookie(c, token)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 }
@@ -84,10 +101,9 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 		return
 	}
 
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name: "auth_token", Value: token, Path: "/", MaxAge: 86400,
-		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
-	})
+	// 🟢 Call the helper method
+	h.setAuthCookie(c, token)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Verification successful"})
 }
 
