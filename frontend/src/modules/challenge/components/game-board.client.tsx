@@ -20,7 +20,7 @@ import type { GameBoardProps } from "../types";
 import { GAME } from "@/shared/config/gameStyles";
 import { UI } from "../utils/styles";
 import { cn } from "@/shared/lib/utils";
-import { logoutAction } from "@/modules/auth/actions/auth.actions";
+import { authClientService } from "@/modules/auth/services/auth.client.service";
 import { AdButton } from "./ad-button.client";
 
 export function GameBoard({
@@ -63,7 +63,7 @@ export function GameBoard({
 
   const handleLogout = async () => {
     try {
-      await logoutAction();
+      await authClientService.logout();
       sessionStorage.removeItem("femabras_saved_guess");
       localStorage.removeItem("femabras_attempts");
 

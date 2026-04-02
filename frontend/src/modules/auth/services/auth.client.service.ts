@@ -18,6 +18,13 @@ export const authClientService = {
     return res.json();
   },
 
+  async logout() {
+    await fetch(`${env.apiUrl}/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  },
+
   async register(email: string, password: string) {
     const res = await fetch(`${env.apiUrl}/register`, {
       method: "POST",

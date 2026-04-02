@@ -39,6 +39,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config, authSvc service.AuthS
 		authGroup.POST("/register", ah.Register)
 		authGroup.POST("/verify-otp", ah.VerifyOTP)
 		authGroup.POST("/login", ah.Login)
+		authGroup.POST("/logout", ah.Logout)
 		authGroup.GET("/auth/google/login", ah.GoogleLogin)
 		authGroup.GET("/auth/google/callback", ah.GoogleCallback)
 	}

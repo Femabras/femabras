@@ -132,3 +132,27 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 
 	c.Redirect(http.StatusFound, fmt.Sprintf("%s/auth/success?token=%s", h.cfg.FrontendURL, token))
 }
+
+func (h *AuthHandler) Logout(c *gin.Context) {
+	isProd := h.cfg.FrontendURL != "http://localhost:3000"
+	cookieDomain := ""
+	sameSiteMode := http.SameSiteLaxMode
+
+	if isProd {
+		cookieDomain = ".femabras.com"
+		sameSiteMode = http.SameSiteNoneMode
+	}
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   isProd,
+		Domain:   cookieDomain,
+		SameSite: sameSiteMode,
+	})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+}
