@@ -50,7 +50,6 @@ export function useGameEngine(
     });
   }, [isAuthenticated]);
 
-  // Combined Auth & Restore Sequence logic
   useEffect(() => {
     if (isAuthenticated) {
       setHasWon(false);
@@ -62,7 +61,7 @@ export function useGameEngine(
         try {
           const parsedSlots = JSON.parse(saved);
           setSlots(parsedSlots);
-          sessionStorage.removeItem("femabras_saved_guess"); // Clean up
+          sessionStorage.removeItem("femabras_saved_guess");
         } catch {
           setSlots(Array(slotsCount).fill(null));
         }
@@ -150,7 +149,7 @@ export function useGameEngine(
         challengeClientService.saveTodayAttempts(0);
         triggerError();
       } else if (error instanceof APIError && error.status === 404) {
-        router.refresh(); // Someone else won
+        router.refresh();
       } else {
         triggerError();
       }

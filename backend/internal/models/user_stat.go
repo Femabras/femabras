@@ -16,7 +16,6 @@ type UserStat struct {
 	LastUpdate        time.Time `gorm:"type:date;not null;index:idx_user_date,unique" json:"last_update"`
 }
 
-// Request for guess submission (validation moved to handler)
 type GuessRequest struct {
 	Guess string `json:"guess" binding:"required"`
 }

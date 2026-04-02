@@ -4,23 +4,14 @@ import { cn } from "@/shared/lib/utils";
 export const GAME = {
   slot: (isShaking: boolean, isOver: boolean, hasValue: boolean) =>
     cn(
-      // We removed border-dashed from the base class so it doesn't conflict
       "relative flex w-full max-w-20 aspect-4/5 items-center justify-center rounded-lg border-2 transition-all duration-300",
-
-      // 🔴 ERROR STATE: Transparent red background, solid red border, soft red glow
       isShaking &&
         "border-red-500 bg-red-500/15 border-solid shadow-lg shadow-red-500/20",
-
-      // ⚪ FILLED STATE: Solid foreground
       !isShaking && hasValue && "border-foreground bg-foreground border-solid",
-
-      // 👻 HOVER STATE (Dragging over): Slight foreground glow
       !isShaking &&
         !hasValue &&
         isOver &&
         "border-foreground/50 bg-foreground/10 border-dashed",
-
-      // ⬛ EMPTY STATE: Matches your exact #fbfffe palette with 20% opacity instead of generic gray
       !isShaking &&
         !hasValue &&
         !isOver &&

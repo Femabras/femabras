@@ -2,7 +2,6 @@
 package worker
 
 import (
-	// "context"
 	"encoding/json"
 	"fmt"
 	"github.com/hibiken/asynq"
@@ -12,13 +11,11 @@ const (
 	TypeSendVerificationEmail = "email:send_verification"
 )
 
-// The data we save into Redis
 type EmailVerificationPayload struct {
 	Email string `json:"email"`
 	OTP   string `json:"otp"`
 }
 
-// Helper to push the job into the Redis queue
 func EnqueueVerificationEmail(client *asynq.Client, email, otp string) error {
 	payload, err := json.Marshal(EmailVerificationPayload{Email: email, OTP: otp})
 	if err != nil {
@@ -27,7 +24,6 @@ func EnqueueVerificationEmail(client *asynq.Client, email, otp string) error {
 
 	task := asynq.NewTask(TypeSendVerificationEmail, payload)
 
-	// Push to Redis. If it fails, we return the error
 	info, err := client.Enqueue(task, asynq.MaxRetry(3))
 	if err != nil {
 		return fmt.Errorf("could not enqueue task: %v", err)

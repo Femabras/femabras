@@ -65,7 +65,7 @@ export function GameBoard({
     try {
       await logoutAction();
       sessionStorage.removeItem("femabras_saved_guess");
-      localStorage.removeItem("femabras_attempts"); // Clean slate fix
+      localStorage.removeItem("femabras_attempts");
 
       const currentPath = window.location.pathname;
       const locale = currentPath.split("/")[1] || "en";

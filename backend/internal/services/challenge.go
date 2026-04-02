@@ -12,7 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateOrGetTodayChallenge ensures a challenge exists for today
 func CreateOrGetTodayChallenge(db *gorm.DB) (*models.Challenge, error) {
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 
@@ -27,7 +26,6 @@ func CreateOrGetTodayChallenge(db *gorm.DB) (*models.Challenge, error) {
 		return nil, fmt.Errorf("check challenge: %w", err)
 	}
 
-	// Generate new random challenge
 	secret, difficulty, err := generateRandomSecret(3, 8)
 	if err != nil {
 		return nil, fmt.Errorf("generate secret: %w", err)
@@ -48,7 +46,6 @@ func CreateOrGetTodayChallenge(db *gorm.DB) (*models.Challenge, error) {
 	return &newChallenge, nil
 }
 
-// generateRandomSecret creates a random digit string between min and max length
 func generateRandomSecret(minLen, maxLen int) (string, int, error) {
 	lenRange := int64(maxLen - minLen + 1)
 	lengthBig, err := rand.Int(rand.Reader, big.NewInt(lenRange))

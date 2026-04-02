@@ -9,18 +9,16 @@ import (
 
 type User struct {
 	gorm.Model
-	Email         *string `gorm:"uniqueIndex;not null"`
-	PasswordHash  string
-	Phone         string  `gorm:"uniqueIndex"`
-	PhoneVerified bool    `gorm:"default:false"`
-	GoogleID      *string `gorm:"uniqueIndex"`
-	Name          string
-	Picture       string
+	Email        *string `gorm:"uniqueIndex;not null"`
+	PasswordHash string
+	IsVerified   bool    `gorm:"default:false"`
+	GoogleID     *string `gorm:"uniqueIndex"`
+	Name         string
+	Picture      string
 }
 
 type PendingUser struct {
 	gorm.Model
-	Phone        string `gorm:"uniqueIndex"`
 	Email        string `gorm:"uniqueIndex;not null"`
 	PasswordHash string
 	OTPCode      string    `gorm:"size:60"`

@@ -13,7 +13,7 @@ var rdb *redis.Client
 
 func InitRedis(url string) {
 	if url == "" {
-		rdb = nil // fallback mode (local dev without Redis)
+		rdb = nil
 		return
 	}
 	opt, _ := redis.ParseURL(url)
@@ -28,7 +28,6 @@ func GetOrCreateAttempts(ctx context.Context, userID, date string) (int, error) 
 
 	val, err := rdb.Get(ctx, key).Int()
 	if err == redis.Nil {
-		// First time this user plays today → initialize with 5 attempts
 		rdb.Set(ctx, key, 5, 26*time.Hour)
 		return 5, nil
 	}
@@ -40,11 +39,10 @@ func GetOrCreateAttempts(ctx context.Context, userID, date string) (int, error) 
 
 func DecrementAndSave(ctx context.Context, userID, date string) (int, error) {
 	if rdb == nil {
-		return 4, nil // fallback for local testing
+		return 4, nil
 	}
 	key := fmt.Sprintf("attempts:%s:%s", userID, date)
 
-	// Ensure the key exists with default 5 before decrementing
 	exists, err := rdb.Exists(ctx, key).Result()
 	if err != nil {
 		return 0, fmt.Errorf("redis exists error: %w", err)

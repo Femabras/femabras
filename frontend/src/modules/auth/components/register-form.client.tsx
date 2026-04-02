@@ -25,11 +25,10 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
-    const phone = formData.get("phone") as string;
     const password = formData.get("password") as string;
 
     try {
-      const res = await authClientService.register(email, phone, password);
+      const res = await authClientService.register(email, password);
       setPendingUserId(String(res.user_id));
       setStep("otp");
     } catch (error) {
@@ -41,7 +40,6 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
     }
   };
 
-  // FIXED: Using React.SyntheticEvent
   const handleVerifyOTP = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!pendingUserId) return;
@@ -88,18 +86,6 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
               type="email"
               autoComplete="email"
               placeholder={dict.emailPlaceholder}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">{dict.phoneLabel}</Label>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              autoComplete="tel"
-              placeholder={dict.phonePlaceholder}
               required
               disabled={isLoading}
             />

@@ -19,12 +19,10 @@ func Auth(cfg *config.Config, db *gorm.DB) gin.HandlerFunc {
 
 		var tokenStr string
 
-		// 1. Try cookie first (PRIMARY - secure)
 		cookieToken, err := c.Cookie("auth_token")
 		if err == nil {
 			tokenStr = cookieToken
 		} else {
-			// 2. Fallback to Authorization header (for mobile / API clients)
 			authHeader := c.GetHeader("Authorization")
 			if authHeader == "" {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -59,20 +57,16 @@ func Auth(cfg *config.Config, db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// --- ACTIVE DATABASE CHECK ---
 		var user models.User
 		if err := db.First(&user, userID).Error; err != nil {
-			// This catches if the user was deleted from the DB
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User no longer exists"})
 			return
 		}
 
-		// Ensures users are verified before letting them guess
-		if !user.PhoneVerified {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Phone not verified"})
+		if !user.IsVerified {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Account not verified"})
 			return
 		}
-		// ----------------------------------
 
 		c.Set("user_id", userID)
 		c.Next()

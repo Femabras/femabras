@@ -13,7 +13,7 @@ import (
 func RateLimit() gin.HandlerFunc {
 	rate := limiter.Rate{
 		Period: 1 * time.Minute,
-		Limit:  5, // 5 requests per minute per IP (adjust as needed)
+		Limit:  5,
 	}
 
 	store := memory.NewStore()

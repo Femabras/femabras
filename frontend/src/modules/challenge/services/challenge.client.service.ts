@@ -36,7 +36,7 @@ export const challengeClientService = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ guess }),
-      credentials: "include", // <--- ADD THIS LINE! It sends the auth_token to Go.
+      credentials: "include",
     });
 
     if (!res.ok) {

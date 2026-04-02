@@ -2,14 +2,14 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link"; // 🟢 ADDED THIS
+import Link from "next/link";
 import type { DailyChallengeResponse } from "../types";
 import type { Dictionary } from "@/i18n/get-dictionary";
 
 interface WinnerPodiumProps {
   challenge: Extract<DailyChallengeResponse, { status: "solved" }>;
   dict: Dictionary["challenge"];
-  isAuthenticated: boolean; // 🟢 ADDED THIS
+  isAuthenticated: boolean;
 }
 
 export function WinnerPodium({

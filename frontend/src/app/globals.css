@@ -15,8 +15,6 @@
 }
 
 @layer components {
-  /* Reusable semantic classes – no more copy-paste hell */
-
   .game-title {
     @apply font-bold text-2xl sm:text-4xl tracking-tight mb-2;
   }
@@ -25,7 +23,6 @@
   }
 }
 
-/* Keep your existing animations */
 @keyframes pop-in {
   0% {
     opacity: 0;

@@ -11,9 +11,6 @@ type Config struct {
 	DatabaseURL        string
 	JWTSecret          string
 	FrontendURL        string
-	TwilioSID          string
-	TwilioAuthToken    string
-	TwilioPhone        string
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
@@ -28,13 +25,10 @@ type Config struct {
 
 func Load() Config {
 	cfg := Config{
-		Port:            getEnvOrDefault("PORT", "8080"),
-		DatabaseURL:     os.Getenv("DATABASE_URL"),
-		JWTSecret:       os.Getenv("JWT_SECRET"),
-		FrontendURL:     getEnvOrDefault("FRONTEND_URL", "http://localhost:3000"),
-		TwilioSID:       os.Getenv("TWILIO_SID"),
-		TwilioAuthToken: os.Getenv("TWILIO_AUTH_TOKEN"),
-		TwilioPhone:     os.Getenv("TWILIO_PHONE_NUMBER"),
+		Port:        getEnvOrDefault("PORT", "8080"),
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+		JWTSecret:   os.Getenv("JWT_SECRET"),
+		FrontendURL: getEnvOrDefault("FRONTEND_URL", "http://localhost:3000"),
 	}
 
 	if cfg.DatabaseURL == "" {

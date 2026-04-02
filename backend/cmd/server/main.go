@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Femabras/femabras/internal/auth/provider"
 	"github.com/Femabras/femabras/internal/auth/repository"
 	"github.com/Femabras/femabras/internal/auth/service"
 	"github.com/Femabras/femabras/internal/config"
@@ -27,26 +26,22 @@ import (
 
 func main() {
 
-	redisURL := os.Getenv("REDIS_URL") // From Railway
+	redisURL := os.Getenv("REDIS_URL")
 	redisOpt, err := asynq.ParseRedisURI(redisURL)
 	if err != nil {
 		panic("Failed to parse Redis URI: " + err.Error())
 	}
 
-	// 2. Initialize Asynq Client (for enqueuing tasks)
 	asynqClient := asynq.NewClient(redisOpt)
 	defer asynqClient.Close()
 
-	// 3. Initialize Asynq Server (the background worker)
 	asynqServer := asynq.NewServer(redisOpt, asynq.Config{
-		Concurrency: 10, // Process up to 10 emails at the exact same time
+		Concurrency: 10,
 	})
 
-	// 4. Map the tasks to their handler functions
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(worker.TypeSendVerificationEmail, worker.HandleVerificationEmailTask)
 
-	// 5. Start the worker in a separate Goroutine so it doesn't block the API!
 	go func() {
 		if err := asynqServer.Run(mux); err != nil {
 			fmt.Printf("could not start asynq server: %v\n", err)
@@ -58,7 +53,6 @@ func main() {
 		log.Fatal("Missing required environment variables (JWTSecret, DatabaseURL, etc.)")
 	}
 
-	// Initialize Infrastructure
 	service.InitGoogleOAuth(&cfg)
 	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
@@ -67,28 +61,23 @@ func main() {
 
 	services.InitRedis(cfg.RedisURL)
 
-	// Initialize Auth Dependencies (Moved out of routes to be accessible here)
 	authRepo := repository.NewAuthRepository(db)
-	authFactory := provider.NewFactory(&cfg)
-	authSvc := service.NewAuthService(authRepo, authFactory, &cfg, asynqClient)
-	// Initialize Challenges
+	authSvc := service.NewAuthService(authRepo, &cfg, asynqClient)
+
 	_, err = services.CreateOrGetTodayChallenge(db)
 	if err != nil {
 		log.Panicf("Failed to initialize daily challenge: %v", err)
 		return
 	}
 
-	// Setup Router
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORS(cfg.FrontendURL))
-	// r.Use(middleware.RateLimit())
 
 	routes.Setup(r, db, &cfg, authSvc)
 
-	// Server Management
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      r,
@@ -103,7 +92,6 @@ func main() {
 		}
 	}()
 
-	// Graceful Shutdown Logic
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

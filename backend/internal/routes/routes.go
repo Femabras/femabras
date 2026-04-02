@@ -19,22 +19,16 @@ import (
 )
 
 func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config, authSvc service.AuthService) {
-	// Initialize Auth Dependencies for the routes
 	ah := handler.NewAuthHandler(authSvc, cfg)
 
-	// Initialize Other Handlers
 	ch := &handlers.ChallengeHandler{DB: db}
 
-	// --- Public Routes ---
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 	r.GET("/challenge", ch.GetDailyChallenge)
-	// Webhook for Ad Network
 	r.GET("/webhooks/ad-reward", handlers.AdRewardWebhook)
 
-	// --- 🟢 Auth Routes (STRICTLY THROTTLED to protect Twilio & Passwords) ---
-	// 5 requests per minute per IP
 	authRate := limiter.Rate{Period: 1 * time.Minute, Limit: 5}
 	authStore := memory.NewStore()
 	authLimiter := limiter.New(authStore, authRate, limiter.WithTrustForwardHeader(true))
@@ -49,7 +43,6 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config, authSvc service.AuthS
 		authGroup.GET("/auth/google/callback", ah.GoogleCallback)
 	}
 
-	// --- Protected Routes (Throttled to prevent guess spamming) ---
 	protected := r.Group("/")
 	protected.Use(middleware.Auth(cfg, db))
 

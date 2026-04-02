@@ -18,11 +18,11 @@ export const authClientService = {
     return res.json();
   },
 
-  async register(email: string, phone: string, password: string) {
+  async register(email: string, password: string) {
     const res = await fetch(`${env.apiUrl}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, phone, password }),
+      body: JSON.stringify({ email, password }),
     });
 
     if (!res.ok) {

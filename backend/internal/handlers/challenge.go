@@ -25,7 +25,7 @@ func (h *ChallengeHandler) GetDailyChallenge(c *gin.Context) {
 		return
 	}
 
-	challenge := *challengePointer // Dereference the pointer
+	challenge := *challengePointer
 
 	if !challenge.IsActive {
 		c.JSON(http.StatusOK, gin.H{
@@ -39,7 +39,6 @@ func (h *ChallengeHandler) GetDailyChallenge(c *gin.Context) {
 		return
 	}
 
-	// Build visible digits (unique set, sorted)
 	digitSet := make(map[rune]bool)
 	for _, r := range challenge.SecretCode {
 		digitSet[r] = true
@@ -50,7 +49,6 @@ func (h *ChallengeHandler) GetDailyChallenge(c *gin.Context) {
 		digits = append(digits, string(r))
 	}
 
-	// Sort for consistent response
 	sort.Strings(digits)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -70,7 +68,6 @@ func (h *ChallengeHandler) GetAttempts(c *gin.Context) {
 
 	todayStr := time.Now().UTC().Format("2006-01-02")
 
-	// Fetch the absolute truth from Redis (or the local fallback)
 	attempts, err := services.GetOrCreateAttempts(c.Request.Context(), userID, todayStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch attempts"})

@@ -12,11 +12,10 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-// Processes the task when Asynq pulls it from Redis
 func HandleVerificationEmailTask(ctx context.Context, t *asynq.Task) error {
 	var payload EmailVerificationPayload
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
-		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry) // Skip retry if JSON is corrupted
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
 
 	apiKey := os.Getenv("RESEND_API_KEY")
@@ -25,7 +24,6 @@ func HandleVerificationEmailTask(ctx context.Context, t *asynq.Task) error {
 		return nil
 	}
 
-	// 1. Build the Resend API Payload
 	requestBody, err := json.Marshal(map[string]interface{}{
 		"from":    "Femabras Security <security@auth.femabras.com>",
 		"to":      []string{payload.Email},
@@ -36,7 +34,6 @@ func HandleVerificationEmailTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
-	// 2. Execute Zero-Dependency HTTP Request
 	req, err := http.NewRequest("POST", "https://api.resend.com/emails", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return err

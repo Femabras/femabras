@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/Femabras/femabras/internal/auth/provider"
 	"github.com/Femabras/femabras/internal/auth/repository"
 	"github.com/Femabras/femabras/internal/auth/types"
 	"github.com/Femabras/femabras/internal/config"
@@ -34,16 +33,13 @@ type AuthService interface {
 
 type authService struct {
 	repo        repository.AuthRepository
-	factory     provider.OTPFactory
 	cfg         *config.Config
-	asynqClient *asynq.Client // 🟢 Inject the Redis Queue Client
+	asynqClient *asynq.Client
 }
 
-// 🟢 Updated constructor to accept the asynq.Client
-func NewAuthService(repo repository.AuthRepository, factory provider.OTPFactory, cfg *config.Config, asynqClient *asynq.Client) AuthService {
+func NewAuthService(repo repository.AuthRepository, cfg *config.Config, asynqClient *asynq.Client) AuthService {
 	return &authService{
 		repo:        repo,
-		factory:     factory,
 		cfg:         cfg,
 		asynqClient: asynqClient,
 	}
@@ -53,16 +49,12 @@ func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (
 	if _, err := s.repo.GetUserByIdentifier(req.Email); err == nil {
 		return 0, errors.New("an account with this email already exists")
 	}
-	if _, err := s.repo.GetUserByIdentifier(req.Phone); err == nil {
-		return 0, errors.New("an account with this phone number already exists")
-	}
 
 	hashed, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	otpCode := s.generateSecureOTP(6)
 	hashedOTP, _ := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
 
 	pending := models.PendingUser{
-		Phone:        req.Phone,
 		Email:        req.Email,
 		PasswordHash: string(hashed),
 		OTPCode:      string(hashedOTP),
@@ -73,28 +65,11 @@ func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (
 		return 0, errors.New("registration already in progress for this number")
 	}
 
-	// 1. Handle SMS via Factory (HTTP APIs like Twilio are generally fast enough for synchronous calls)
-	if req.Phone != "" {
-		p := s.factory.GetProvider("twilio")
-		if err := p.Send(ctx, req.Phone, otpCode); err != nil {
-			log.Printf("SMS failed: %v", err)
-		}
-	}
-
-	// 2. Handle Email via Redis Queue (Enterprise pattern to avoid SMTP timeouts)
 	if req.Email != "" {
 		if s.asynqClient != nil {
-			// 🟢 Fire and Forget: Push instantly to Redis
 			err := worker.EnqueueVerificationEmail(s.asynqClient, req.Email, otpCode)
 			if err != nil {
 				log.Printf("CRITICAL: Failed to queue email for %s: %v", req.Email, err)
-			}
-		} else {
-			// Fallback: If Asynq isn't wired up in main.go yet, use the old factory method
-			log.Println("⚠️ Asynq client not initialized, falling back to synchronous email provider")
-			p := s.factory.GetProvider("email")
-			if err := p.Send(ctx, req.Email, otpCode); err != nil {
-				log.Printf("Email failed: %v", err)
 			}
 		}
 	}
@@ -112,7 +87,7 @@ func (s *authService) Login(ctx context.Context, req types.LoginRequest) (string
 		return "", errors.New("invalid credentials")
 	}
 
-	if !user.PhoneVerified {
+	if !user.IsVerified {
 		return "", errors.New("please verify your phone number first")
 	}
 
@@ -141,9 +116,9 @@ func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string
 	}
 
 	user := models.User{
-		Phone:         pending.Phone,
-		PasswordHash:  pending.PasswordHash,
-		PhoneVerified: true,
+		Email:        &pending.Email,
+		PasswordHash: pending.PasswordHash,
+		IsVerified:   true,
 	}
 	if pending.Email != "" {
 		user.Email = &pending.Email

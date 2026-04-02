@@ -67,18 +67,15 @@ func (h *ChallengeHandler) SubmitGuess(c *gin.Context) {
 		status = "success"
 		services.LockOnSuccess(context.Background(), userID, todayStr)
 
-		// Fetch the winning user's details
 		var user models.User
 		h.DB.First(&user, userID)
 
-		// Respect privacy: Use their Name, fallback to "Anonymous Hero"
 		winnerName := "Anonymous Hero"
 
 		if user.Name != "" {
 			winnerName = user.Name
 		}
 
-		// Update the challenge with the winner's info
 		h.DB.Model(&challenge).Updates(map[string]interface{}{
 			"is_active":   false,
 			"winner_id":   userID,
