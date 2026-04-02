@@ -50,6 +50,8 @@
     "btnVerify": "Confirm OTP",
     "btnVerifying": "Verifying...",
     "haveAccount": "Already have an account?",
-    "loginLink": "Log in"
+    "loginLink": "Log in",
+    "nameLabel": "Username",
+    "namePlaceholder": "CodeBreaker99"
   }
 }

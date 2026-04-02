@@ -19,6 +19,7 @@ type User struct {
 
 type PendingUser struct {
 	gorm.Model
+	Name         string `gorm:"uniqueIndex;not null"`
 	Email        string `gorm:"uniqueIndex;not null"`
 	PasswordHash string
 	OTPCode      string    `gorm:"size:60"`

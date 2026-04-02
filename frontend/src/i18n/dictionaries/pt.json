@@ -50,6 +50,8 @@
     "btnVerify": "Confirmar OTP",
     "btnVerifying": "A verificar...",
     "haveAccount": "Já tem uma conta?",
-    "loginLink": "Iniciar sessão"
+    "loginLink": "Iniciar sessão",
+    "nameLabel": "Nome de Utilizador",
+    "namePlaceholder": "Decifrador99"
   }
 }

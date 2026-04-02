@@ -38,11 +38,12 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
     setErrorMsg(null);
 
     const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
     try {
-      const res = await authClientService.register(email, password);
+      const res = await authClientService.register(name, email, password);
       setPendingUserId(String(res.user_id));
       setStep("otp");
     } catch (error) {
@@ -109,6 +110,20 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
 
       {step === "register" ? (
         <form onSubmit={handleRegister} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="name">{dict.nameLabel}</Label>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              autoComplete="username"
+              placeholder={dict.namePlaceholder}
+              required
+              minLength={2}
+              maxLength={30}
+              disabled={isLoading}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">{dict.emailLabel}</Label>
             <Input

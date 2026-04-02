@@ -25,11 +25,11 @@ export const authClientService = {
     });
   },
 
-  async register(email: string, password: string) {
+  async register(name: string, email: string, password: string) {
     const res = await fetch(`${env.apiUrl}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ name, email, password }),
     });
 
     if (!res.ok) {

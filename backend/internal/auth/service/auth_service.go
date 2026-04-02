@@ -55,6 +55,7 @@ func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (
 	hashedOTP, _ := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
 
 	pending := models.PendingUser{
+		Name:         req.Name,
 		Email:        req.Email,
 		PasswordHash: string(hashed),
 		OTPCode:      string(hashedOTP),
@@ -116,6 +117,7 @@ func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string
 	}
 
 	user := models.User{
+		Name:         pending.Name,
 		Email:        &pending.Email,
 		PasswordHash: pending.PasswordHash,
 		IsVerified:   true,
