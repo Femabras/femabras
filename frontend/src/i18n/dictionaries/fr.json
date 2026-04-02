@@ -45,7 +45,7 @@
     "verifyTitle": "Vérifier le e-mail",
     "registerSubtitle": "Inscrivez-vous pour sauvegarder votre progression quotidienne.",
     "verifySubtitle": "Entrez le code à 6 chiffres envoyé sur votre appareil.",
-    "passwordMin": "Min. 8 caractères",
+    "passwordMin": "Min. 16 caractères",
     "btnRegister": "Créer un compte",
     "btnVerify": "Confirmer OTP",
     "btnVerifying": "Vérification...",

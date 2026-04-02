@@ -1,7 +1,7 @@
 //femabras/frontend/src/modules/auth/components/register-form.client.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/shared/components/ui/button";
@@ -9,6 +9,18 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { authClientService } from "../services/auth.client.service";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
+import * as zxcvbnCommonPackage from "@zxcvbn-ts/language-common";
+import * as zxcvbnEnPackage from "@zxcvbn-ts/language-en";
+
+zxcvbnOptions.setOptions({
+  translations: zxcvbnEnPackage.translations,
+  graphs: zxcvbnCommonPackage.adjacencyGraphs,
+  dictionary: {
+    ...zxcvbnCommonPackage.dictionary,
+    ...zxcvbnEnPackage.dictionary,
+  },
+});
 
 export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
   const router = useRouter();
@@ -17,6 +29,8 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
 
   const [step, setStep] = useState<"register" | "otp">("register");
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+
+  const [password, setPassword] = useState("");
 
   const handleRegister = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,6 +73,23 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
     }
   };
 
+  const passwordStrength = useMemo(() => {
+    if (!password) return { score: -1, warning: "", color: "bg-white/5" };
+    const result = zxcvbn(password);
+    const colors = [
+      "bg-red-500/70",
+      "bg-red-400",
+      "bg-yellow-500/80",
+      "bg-yellow-400",
+      "bg-foreground shadow-[0_0_10px_rgba(251,255,254,0.6)]",
+    ];
+    return {
+      score: result.score,
+      warning: result.feedback.warning || result.feedback.suggestions[0] || "",
+      color: colors[result.score],
+    };
+  }, [password]);
+
   return (
     <div className="w-full max-w-md mx-auto p-6 sm:p-8 bg-white/5 border border-white/10 rounded-3xl shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500">
       <div className="text-center mb-8">
@@ -99,15 +130,46 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
               autoComplete="new-password"
               placeholder={dict.passwordMin}
               required
-              minLength={8}
+              minLength={16}
               disabled={isLoading}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
+
+            {/* Render the Strength Meter UI */}
+            <div className="pt-3">
+              <div className="flex gap-2 w-full">
+                {[0, 1, 2, 3].map((threshold) => {
+                  const isActive =
+                    passwordStrength.score === 0
+                      ? threshold === 1
+                      : passwordStrength.score >= threshold;
+                  return (
+                    <div
+                      key={threshold}
+                      className={`h-1.5 w-1/4 rounded-full transition-all duration-500 ease-out ${
+                        isActive
+                          ? passwordStrength.color
+                          : "bg-white/5 shadow-inner"
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+              {passwordStrength.warning && (
+                <p className="text-[11px] text-foreground/70 mt-3 font-medium animate-in fade-in slide-in-from-top-1">
+                  💡 {passwordStrength.warning}
+                </p>
+              )}
+            </div>
           </div>
           <Button
             type="submit"
             variant="warning"
             className="w-full mt-4"
-            disabled={isLoading}>
+            disabled={
+              isLoading || (password.length > 0 && passwordStrength.score < 2)
+            }>
             {isLoading ? dict.processing : dict.btnRegister}
           </Button>
         </form>
@@ -121,7 +183,7 @@ export function RegisterForm({ dict }: { dict: Dictionary["auth"] }) {
               inputMode="numeric"
               autoComplete="one-time-code"
               maxLength={6}
-              placeholder="000000"
+              placeholder=""
               className="text-center text-2xl tracking-widest font-black"
               required
               disabled={isLoading}

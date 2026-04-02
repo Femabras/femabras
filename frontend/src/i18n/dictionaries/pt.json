@@ -45,7 +45,7 @@
     "verifyTitle": "Verificar e-mail",
     "registerSubtitle": "Junte-se para guardar o seu progresso diário.",
     "verifySubtitle": "Insira o código de 6 dígitos enviado para o seu dispositivo.",
-    "passwordMin": "Mín. 8 caracteres",
+    "passwordMin": "Mín. 16 caracteres",
     "btnRegister": "Criar Conta",
     "btnVerify": "Confirmar OTP",
     "btnVerifying": "A verificar...",

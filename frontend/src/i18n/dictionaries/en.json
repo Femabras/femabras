@@ -45,7 +45,7 @@
     "verifyTitle": "Verify Email",
     "registerSubtitle": "Join to save your daily challenge progress.",
     "verifySubtitle": "Enter the 6-digit code sent to your device.",
-    "passwordMin": "Min. 8 characters",
+    "passwordMin": "Min. 16 characters",
     "btnRegister": "Create Account",
     "btnVerify": "Confirm OTP",
     "btnVerifying": "Verifying...",
