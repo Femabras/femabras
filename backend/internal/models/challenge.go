@@ -11,6 +11,7 @@ type Challenge struct {
 	gorm.Model
 	SecretCode  string    `gorm:"not null;size:32"`
 	Difficulty  int       `gorm:"not null;default:1"`
+	PrizeAmount int       `gorm:"not null;default:0"`
 	ReleaseDate time.Time `gorm:"type:date;uniqueIndex;not null"`
 	IsActive    bool      `gorm:"default:true"`
 	WinnerID    *string   `gorm:"index"`

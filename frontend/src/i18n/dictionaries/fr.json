@@ -1,6 +1,7 @@
 {
   "challenge": {
     "titleDefault": "Déchiffrez le code secret",
+    "earnPrize": "et gagnez",
     "titleWon": "🎉 Félicitations ! Code déchiffré.",
     "titleNoAttempts": "Plus de tentatives",
     "titleReady": "Le moment de vérité !",
@@ -27,7 +28,29 @@
     "podiumSubtitle": "Le code secret d'aujourd'hui a été déchiffré par",
     "podiumFallbackName": "Héros Anonyme",
     "podiumNext": "Nouveau défi demain à minuit UTC.",
-    "podiumRegisterBtn": "Créer un compte pour être averti !"
+    "podiumRegisterBtn": "Créer un compte pour être averti !",
+    "prizePool": "Cagnotte",
+    "claimTitle": "Réclamez votre prix !",
+    "claimSubtitle": "Comment souhaitez-vous recevoir votre argent ?",
+    "claimMethodLabel": "Méthode de paiement",
+    "claimBank": "Virement bancaire",
+    "claimAtm": "Retrait sans carte (Multicaixa)",
+    "claimAtmDisabled": "(Non éligible pour ce montant)",
+    "claimIbanLabel": "Votre IBAN",
+    "claimPhoneLabel": "Votre numéro de téléphone",
+    "btnClaim": "Envoyer la demande",
+    "claimSuccessTitle": "Demande reçue !",
+    "claimSuccessMsg": "Notre équipe examine votre victoire. Votre prix sera envoyé sous peu.",
+    "claimExpress": "Multicaixa Express",
+    "claimAccountName": "Nom du titulaire du compte",
+    "statusCracked": "Code Déchiffré",
+    "statusClaimed": "Demande Soumise",
+    "statusRejected": "Problème de Paiement",
+    "statusPaid": "Prix Envoyé",
+    "youWonTitle": "Vous Avez Gagné !",
+    "youWonSubtitle": "La progression de votre prix est ci-dessous.",
+    "prizeLocked": "Prix Verrouillé",
+    "statusReviewing": "Notre équipe examine vos détails..."
   },
   "auth": {
     "loginTitle": "Bon retour",

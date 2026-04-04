@@ -1,6 +1,7 @@
 {
   "challenge": {
     "titleDefault": "Quebre o Código Secreto",
+    "earnPrize": "e ganhe",
     "titleWon": "🎉 Parabéns! Código quebrado.",
     "titleNoAttempts": "Fim das Tentativas",
     "titleReady": "A Hora da Verdade!",
@@ -27,7 +28,29 @@
     "podiumSubtitle": "O código secreto de hoje foi decifrado por",
     "podiumFallbackName": "Herói Anónimo",
     "podiumNext": "Novo desafio amanhã à meia-noite UTC.",
-    "podiumRegisterBtn": "Criar conta para ser notificado!"
+    "podiumRegisterBtn": "Criar conta para ser notificado!",
+    "prizePool": "Prémio em Jogo",
+    "claimTitle": "Reivindique o seu Prémio!",
+    "claimSubtitle": "Como gostaria de receber o seu dinheiro?",
+    "claimMethodLabel": "Método de Pagamento",
+    "claimBank": "Transferência Bancária",
+    "claimAtm": "Levantamento sem Cartão (Multicaixa)",
+    "claimAtmDisabled": "(Indisponível para este valor)",
+    "claimIbanLabel": "O seu IBAN",
+    "claimPhoneLabel": "O seu Número de Telefone",
+    "btnClaim": "Enviar Pedido",
+    "claimSuccessTitle": "Pedido Recebido!",
+    "claimSuccessMsg": "A nossa equipa está a analisar a sua vitória. O prémio será enviado em breve.",
+    "claimExpress": "Multicaixa Express",
+    "claimAccountName": "Nome do Titular da Conta",
+    "statusCracked": "Código Decifrado",
+    "statusClaimed": "Pedido Submetido",
+    "statusRejected": "Problema no Pagamento",
+    "statusPaid": "Prémio Enviado",
+    "youWonTitle": "Ganhaste Hoje!",
+    "youWonSubtitle": "O progresso do teu prémio está abaixo.",
+    "prizeLocked": "Prémio Trancado",
+    "statusReviewing": "A nossa equipa está a rever os seus dados..."
   },
   "auth": {
     "loginTitle": "Bem-vindo de volta",

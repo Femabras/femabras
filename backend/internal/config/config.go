@@ -20,7 +20,8 @@ type Config struct {
 	SMTPUsername       string
 	SMTPPassword       string
 	FromEmail          string
-	RedisURL           string `env:"REDIS_URL"`
+	AdminEmail         string
+	RedisURL           string
 }
 
 func Load() Config {
@@ -39,7 +40,7 @@ func Load() Config {
 	}
 
 	cfg.GoogleClientID = os.Getenv("GOOGLE_CLIENT_ID")
-	cfg.GoogleClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
+	cfg.GoogleClientSecret = os.Getenv("Google_CLIENT_SECRET")
 	cfg.GoogleRedirectURL = os.Getenv("GOOGLE_REDIRECT_URL")
 	cfg.AppName = getEnvOrDefault("APP_NAME", "Femabras Daily Challenge")
 	cfg.SMTPHost = getEnvOrDefault("SMTP_HOST", "smtp.gmail.com")
@@ -47,6 +48,7 @@ func Load() Config {
 	cfg.SMTPUsername = os.Getenv("SMTP_USERNAME")
 	cfg.SMTPPassword = os.Getenv("SMTP_PASSWORD")
 	cfg.FromEmail = os.Getenv("FROM_EMAIL")
+	cfg.AdminEmail = os.Getenv("ADMIN_EMAIL")
 	cfg.RedisURL = os.Getenv("REDIS_URL")
 
 	return cfg

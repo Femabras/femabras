@@ -21,6 +21,7 @@ import { GAME } from "@/shared/config/gameStyles";
 import { UI } from "../utils/styles";
 import { cn } from "@/shared/lib/utils";
 import { authClientService } from "@/modules/auth/services/auth.client.service";
+import { ClaimPrizeForm } from "./claim-prize-form.client";
 import { AdButton } from "./ad-button.client";
 
 export function GameBoard({
@@ -80,6 +81,7 @@ export function GameBoard({
     <div className="flex flex-col items-center justify-center touch-none w-full relative min-h-25">
       {isAuthenticated && (
         <div className="fixed top-4 left-0 w-full px-4 sm:px-8 flex justify-between items-center z-40 pointer-events-none">
+          {/* Left Side: Attempts */}
           <div className="pointer-events-auto flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md shadow-lg">
             <span className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-yellow-500/20 text-yellow-500 text-xs sm:text-sm font-black">
               {state.attempts}
@@ -88,11 +90,14 @@ export function GameBoard({
               {dict.attemptsLeft}
             </span>
           </div>
-          <button
-            onClick={handleLogout}
-            className="pointer-events-auto px-4 py-2 sm:px-5 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-foreground/50 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20">
-            {dict.logout}
-          </button>
+          {/* Right Side: Prize & Logout */}
+          <div className="flex items-center gap-4 sm:gap-6 pointer-events-auto">
+            <button
+              onClick={handleLogout}
+              className="pointer-events-auto px-4 py-2 sm:px-5 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-foreground/50 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20">
+              {dict.logout}
+            </button>
+          </div>
         </div>
       )}
 
@@ -124,7 +129,30 @@ export function GameBoard({
         <div
           className="text-center mb-8 sm:mb-10 px-2 transition-opacity"
           style={{ opacity: state.authPrompt.isActive ? 0.1 : 1 }}>
-          <h2 className="game-title">{state.title}</h2>
+          <h2 className="game-title flex flex-col items-center gap-1 sm:gap-2">
+            <span>{state.title}</span>
+
+            {/* Only show the prize if the default title is showing */}
+            {state.title === dict.titleDefault && challenge?.prize > 0 && (
+              <span className="text-lg sm:text-2xl text-foreground/80 font-bold tracking-normal">
+                {dict.earnPrize}{" "}
+                <span className="text-yellow-400 font-black drop-shadow-[0_0_15px_rgba(250,204,21,0.6)] tracking-tight">
+                  {/* 🟢 THE FIX: Native Locale Currency Formatting */}
+                  {new Intl.NumberFormat(
+                    typeof window !== "undefined"
+                      ? window.location.pathname.split("/")[1] || "en"
+                      : "en",
+                    {
+                      style: "decimal",
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    },
+                  ).format(challenge.prize)}{" "}
+                  AOA
+                </span>
+              </span>
+            )}
+          </h2>
 
           {!state.hasWon &&
             !state.isOutOfAttempts &&
@@ -224,9 +252,7 @@ export function GameBoard({
           className="min-h-25 flex flex-col items-center justify-center transition-opacity w-full"
           style={{ opacity: state.authPrompt.isActive ? 0.1 : 1 }}>
           {state.hasWon ? (
-            <div className="text-green-400 font-bold text-xl uppercase tracking-widest animate-pop-in">
-              {dict.unlocked}
-            </div>
+            <ClaimPrizeForm prizeAmount={challenge.prize} dict={dict} />
           ) : state.isOutOfAttempts ? null : (
             <>
               {showTray ? (

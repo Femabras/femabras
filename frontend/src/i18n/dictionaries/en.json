@@ -1,6 +1,7 @@
 {
   "challenge": {
     "titleDefault": "Crack the Secret Code",
+    "earnPrize": "and earn",
     "titleWon": "🎉 Congratulations! Code cracked.",
     "titleNoAttempts": "Out of Attempts",
     "titleReady": "The Moment of Truth!",
@@ -27,7 +28,29 @@
     "podiumSubtitle": "Today's secret code was cracked by",
     "podiumFallbackName": "Anonymous Hero",
     "podiumNext": "New challenge tomorrow at midnight UTC.",
-    "podiumRegisterBtn": "Create an account to be notified!"
+    "podiumRegisterBtn": "Create an account to be notified!",
+    "prizePool": "Prize Pool",
+    "claimTitle": "Claim Your Prize!",
+    "claimSubtitle": "How would you like to receive your money?",
+    "claimMethodLabel": "Payout Method",
+    "claimBank": "Bank Transfer",
+    "claimAtm": "ATM Withdrawal (Multicaixa)",
+    "claimAtmDisabled": "(Not eligible for this amount)",
+    "claimIbanLabel": "Your IBAN",
+    "claimPhoneLabel": "Your Phone Number",
+    "btnClaim": "Send Request",
+    "claimSuccessTitle": "Request Received!",
+    "claimSuccessMsg": "Our team is reviewing your win. Your prize will be sent shortly.",
+    "claimExpress": "Multicaixa Express",
+    "claimAccountName": "Account Holder Name",
+    "statusCracked": "Code Cracked",
+    "statusClaimed": "Claim Submitted",
+    "statusRejected": "Issue with Payout",
+    "statusPaid": "Prize Sent",
+    "youWonTitle": "You Won Today!",
+    "youWonSubtitle": "Your prize progress is tracked below.",
+    "prizeLocked": "Prize Locked",
+    "statusReviewing": "Our team is reviewing your details..."
   },
   "auth": {
     "loginTitle": "Welcome Back",

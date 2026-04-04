@@ -21,7 +21,7 @@ import (
 func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config, authSvc service.AuthService) {
 	ah := handler.NewAuthHandler(authSvc, cfg)
 
-	ch := &handlers.ChallengeHandler{DB: db}
+	ch := &handlers.ChallengeHandler{DB: db, Cfg: cfg}
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -54,4 +54,6 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config, authSvc service.AuthS
 	protected.Use(mgin.NewMiddleware(guessLimiter))
 	protected.POST("/guess", ch.SubmitGuess)
 	protected.GET("/challenge/attempts", ch.GetAttempts)
+	protected.POST("/claim", ch.ClaimPrize)
+	protected.GET("/challenge/my-status", ch.GetMyStatus)
 }

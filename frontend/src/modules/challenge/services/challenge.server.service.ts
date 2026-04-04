@@ -1,14 +1,13 @@
 //femabras/frontend/src/modules/challenge/services/challenge.server.service.ts
-
+import { env } from "@/shared/config/env";
+import { cookies } from "next/headers";
 import { DailyChallengeResponse } from "../types";
 import { APIError } from "@/shared/lib/errors";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export const challengeServerService = {
   async getDailyChallenge(): Promise<DailyChallengeResponse> {
     try {
-      const res = await fetch(`${BASE_URL}/challenge`, {
+      const res = await fetch(`${env.apiUrl}/challenge`, {
         cache: "no-store",
       });
 
@@ -26,5 +25,26 @@ export const challengeServerService = {
       if (error instanceof APIError) throw error;
       throw new APIError("Failed to connect to backend", 500);
     }
+  },
+
+  async getMyStatus(): Promise<{
+    is_winner: boolean;
+    payout_status: "unclaimed" | "pending" | "paid" | "rejected";
+  }> {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+
+    if (!token) return { is_winner: false, payout_status: "unclaimed" };
+
+    const res = await fetch(
+      `${env.apiUrl}/challenge/my-status?t=${Date.now()}`,
+      {
+        headers: { Cookie: `auth_token=${token}` },
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) return { is_winner: false, payout_status: "unclaimed" };
+    return res.json();
   },
 };

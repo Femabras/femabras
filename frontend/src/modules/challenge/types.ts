@@ -7,14 +7,18 @@ export type DailyChallengeResponse =
       slots: number;
       date: string;
       digits: string[];
+      prize: number;
     }
   | {
       status: "solved";
       message: string;
+      prize: number;
       winner: {
         name: string | null;
         picture: string | null;
       };
+      is_winner: boolean;
+      payout_status: "unclaimed" | "pending" | "paid" | "rejected";
     };
 
 export interface GuessResponse {
