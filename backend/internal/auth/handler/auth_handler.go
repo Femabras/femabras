@@ -23,27 +23,54 @@ func NewAuthHandler(svc service.AuthService, cfg *config.Config) *AuthHandler {
 	}
 }
 
-// 🟢 THE FIX: A dedicated helper method to handle the secure cookie logic
-func (h *AuthHandler) setAuthCookie(c *gin.Context, token string) {
+func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken string, refreshToken string) {
 	isProd := h.cfg.FrontendURL != "http://localhost:3000"
-
-	cookieDomain := ""
-	sameSiteMode := http.SameSiteLaxMode
+	domain := ""
+	sameSite := http.SameSiteLaxMode
 
 	if isProd {
-		cookieDomain = ".femabras.com"
-		sameSiteMode = http.SameSiteNoneMode
+		domain = ".femabras.com"
+		sameSite = http.SameSiteNoneMode
 	}
 
 	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "auth_token",
-		Value:    token,
+		Name:     "access_token",
+		Value:    accessToken,
 		Path:     "/",
-		MaxAge:   86400,
+		MaxAge:   900,
 		HttpOnly: true,
 		Secure:   isProd,
-		Domain:   cookieDomain,
-		SameSite: sameSiteMode,
+		Domain:   domain,
+		SameSite: sameSite,
+	})
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		MaxAge:   604800,
+		HttpOnly: true,
+		Secure:   isProd,
+		Domain:   domain,
+		SameSite: sameSite,
+	})
+}
+
+func (h *AuthHandler) clearAuthCookies(c *gin.Context) {
+	isProd := h.cfg.FrontendURL != "http://localhost:3000"
+	domain := ""
+	sameSite := http.SameSiteLaxMode
+
+	if isProd {
+		domain = ".femabras.com"
+		sameSite = http.SameSiteNoneMode
+	}
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name: "access_token", Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: isProd, Domain: domain, SameSite: sameSite,
+	})
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name: "refresh_token", Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: isProd, Domain: domain, SameSite: sameSite,
 	})
 }
 
@@ -61,7 +88,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "User created. OTP sent to phone.",
+		"message": "User created. OTP sent to email.",
 		"user_id": userID,
 	})
 }
@@ -73,15 +100,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.service.Login(c.Request.Context(), req)
+	access, refresh, err := h.service.Login(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 🟢 Call the helper method
-	h.setAuthCookie(c, token)
-
+	h.setAuthCookies(c, access, refresh)
 	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 }
 
@@ -95,15 +120,13 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 	var uid uint
 	fmt.Sscanf(req.UserID, "%d", &uid)
 
-	token, err := h.service.VerifyOTP(c.Request.Context(), uid, req.OTP)
+	access, refresh, err := h.service.VerifyOTP(c.Request.Context(), uid, req.OTP)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 🟢 Call the helper method
-	h.setAuthCookie(c, token)
-
+	h.setAuthCookies(c, access, refresh)
 	c.JSON(http.StatusOK, gin.H{"message": "Verification successful"})
 }
 
@@ -124,35 +147,40 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	}
 
 	code := c.Query("code")
-	token, err := h.service.HandleGoogleCallback(c.Request.Context(), code)
+	access, refresh, err := h.service.HandleGoogleCallback(c.Request.Context(), code)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "OAuth failed"})
 		return
 	}
 
-	c.Redirect(http.StatusFound, fmt.Sprintf("%s/auth/success?token=%s", h.cfg.FrontendURL, token))
+	c.Redirect(http.StatusFound, fmt.Sprintf("%s/auth/success?access=%s&refresh=%s", h.cfg.FrontendURL, access, refresh))
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	isProd := h.cfg.FrontendURL != "http://localhost:3000"
-	cookieDomain := ""
-	sameSiteMode := http.SameSiteLaxMode
+	refreshToken, err := c.Cookie("refresh_token")
 
-	if isProd {
-		cookieDomain = ".femabras.com"
-		sameSiteMode = http.SameSiteNoneMode
+	if err == nil && refreshToken != "" {
+		h.service.RevokeRefreshToken(c.Request.Context(), refreshToken)
 	}
 
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "auth_token",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   isProd,
-		Domain:   cookieDomain,
-		SameSite: sameSiteMode,
-	})
-
+	h.clearAuthCookies(c)
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+}
+
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil || refreshToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No refresh token provided"})
+		return
+	}
+
+	access, newRefresh, err := h.service.RefreshTokens(c.Request.Context(), refreshToken)
+	if err != nil {
+		h.clearAuthCookies(c) // Wipe dead cookies
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	h.setAuthCookies(c, access, newRefresh)
+	c.JSON(http.StatusOK, gin.H{"message": "Tokens refreshed"})
 }

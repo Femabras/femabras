@@ -124,7 +124,7 @@ func (h *ChallengeHandler) GetMyStatus(c *gin.Context) {
 		if err == nil {
 			payoutStatus = payout.Status
 		} else {
-			fmt.Printf("🚨 GET STATUS ERROR: Found winner, but failed to find PayoutRequest in DB: %v\n", err)
+			fmt.Printf("GET STATUS ERROR: Found winner, but failed to find PayoutRequest in DB: %v\n", err)
 		}
 	}
 

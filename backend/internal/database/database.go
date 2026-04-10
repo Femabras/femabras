@@ -35,6 +35,7 @@ func Connect(dsn string) (*gorm.DB, error) {
 		&models.User{},
 		&models.OTP{},
 		&models.PayoutRequest{},
+		&models.RefreshToken{},
 	)
 	if err != nil {
 		return nil, err

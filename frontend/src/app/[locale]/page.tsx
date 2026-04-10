@@ -19,7 +19,7 @@ export default async function Home({
   const dict = await getDictionary(locale);
 
   const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.has("auth_token");
+  const isAuthenticated = cookieStore.has("access_token");
 
   let isWinner = false;
   let payoutStatus: "unclaimed" | "pending" | "paid" | "rejected" = "unclaimed";

@@ -1,0 +1,20 @@
+FROM golang:1.25-alpine
+
+WORKDIR /app
+
+# Install certificates and git for fetching packages
+RUN apk add --no-cache ca-certificates git
+
+# Install the modern Air binary for hot-reloading
+RUN go install github.com/air-verse/air@latest
+
+# Cache dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# We DO NOT copy the source code here. The docker-compose bind mount handles it.
+
+EXPOSE 8080
+
+# Explicitly tell Air to build from the cmd/server directory
+CMD ["air", "--build.cmd", "go build -o tmp/main ./cmd/server", "--build.bin", "./tmp/main"]

@@ -1,7 +1,6 @@
 {
   "challenge": {
-    "titleDefault": "Quebre o Código Secreto",
-    "earnPrize": "e ganhe",
+    "titleDefault": "Decifra. Ganha {prize} AOA.",
     "titleWon": "🎉 Parabéns! Código quebrado.",
     "titleNoAttempts": "Fim das Tentativas",
     "titleReady": "A Hora da Verdade!",
@@ -76,5 +75,44 @@
     "loginLink": "Iniciar sessão",
     "nameLabel": "Nome de Utilizador",
     "namePlaceholder": "Decifrador99"
+  },
+  "layout": {
+    "home": "Jogo",
+    "about": "Sobre",
+    "services": "Serviços",
+    "products": "Produtos",
+    "contact": "Contacto",
+    "login": "Entrar",
+    "register": "Criar Conta",
+    "logout": "Sair",
+    "rights": "Todos os direitos reservados.",
+    "terms": "Termos de Serviço",
+    "privacy": "Política de Privacidade"
+  },
+  "pages": {
+    "aboutTitle": "Sobre o Suchel",
+    "aboutSubtitle": "Engenheiro de Software & Produtor Musical",
+    "aboutBio1": "A unir a arquitetura empresarial altamente escalável e a produção de áudio premium. Com foco profundo em APIs nativas e TypeScript estrito, construo software que atua em grande escala.",
+    "aboutBio2": "Além do código, sou um produtor musical dedicado, especializado em R&B, Afropop, Kizomba, Kuduro e Amapiano. Controlo e independência são o núcleo do meu fluxo de trabalho.",
+    "servicesTitle": "Serviços Premium",
+    "servicesSubtitle": "Soluções Técnicas e Criativas",
+    "svcSoftware": "Arquitetura Empresarial",
+    "svcSoftwareDesc": "Sistemas backend escaláveis e aplicações web modernas construídas para milhões de utilizadores.",
+    "svcMusic": "Produção e Mistura de Áudio",
+    "svcMusicDesc": "Criação de instrumentais profissionais e mistura em vários géneros usando ferramentas de estúdio de ponta.",
+    "productsTitle": "Loja Digital",
+    "productsSubtitle": "Beats Exclusivos e E-Books",
+    "prodBeat": "Licença Exclusiva de Beat",
+    "prodBeatDesc": "Instrumentais de Afropop e Amapiano de alta fidelidade com stems completos.",
+    "prodBook": "E-Book de Engenharia",
+    "prodBookDesc": "Padrões avançados para escalar aplicações em Go & Next.js.",
+    "btnBuy": "Comprar Agora",
+    "contactTitle": "Fale Connosco",
+    "contactSubtitle": "Vamos construir algo incrível.",
+    "contactName": "O seu Nome",
+    "contactEmail": "O seu Email",
+    "contactMessage": "Mensagem",
+    "btnSend": "Enviar Mensagem",
+    "legalUpdated": "Última Atualização: Abril 2026"
   }
 }

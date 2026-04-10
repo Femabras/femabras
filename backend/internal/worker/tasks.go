@@ -4,6 +4,8 @@ package worker
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/Femabras/femabras/internal/utils"
 	"github.com/hibiken/asynq"
 )
 
@@ -17,12 +19,17 @@ type EmailVerificationPayload struct {
 }
 
 func EnqueueVerificationEmail(client *asynq.Client, email, otp string) error {
-	payload, err := json.Marshal(EmailVerificationPayload{Email: email, OTP: otp})
+	rawPayload, err := json.Marshal(EmailVerificationPayload{Email: email, OTP: otp})
 	if err != nil {
 		return err
 	}
 
-	task := asynq.NewTask(TypeSendVerificationEmail, payload)
+	encryptedPayload, err := utils.EncryptPayload(rawPayload)
+	if err != nil {
+		return err
+	}
+
+	task := asynq.NewTask(TypeSendVerificationEmail, []byte(encryptedPayload))
 
 	info, err := client.Enqueue(task, asynq.MaxRetry(3))
 	if err != nil {

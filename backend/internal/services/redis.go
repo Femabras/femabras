@@ -3,6 +3,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -18,6 +19,10 @@ func InitRedis(url string) {
 	}
 	opt, _ := redis.ParseURL(url)
 	rdb = redis.NewClient(opt)
+}
+
+func GetRedisClient() *redis.Client {
+	return rdb
 }
 
 func GetOrCreateAttempts(ctx context.Context, userID, date string) (int, error) {
@@ -71,6 +76,22 @@ func IncrementAttemptAndAdsWatched(ctx context.Context, userID, date string) err
 	if rdb == nil {
 		return nil
 	}
-	key := fmt.Sprintf("attempts:%s:%s", userID, date)
-	return rdb.Incr(ctx, key).Err()
+
+	adsWatchedKey := fmt.Sprintf("ads_watched:%s:%s", userID, date)
+	watched, _ := rdb.Get(ctx, adsWatchedKey).Int()
+
+	if watched >= 3 {
+		return errors.New("daily ad limit reached")
+	}
+
+	_, err := GetOrCreateAttempts(ctx, userID, date)
+	if err != nil {
+		return err
+	}
+
+	rdb.Incr(ctx, adsWatchedKey)
+	rdb.Expire(ctx, adsWatchedKey, 26*time.Hour)
+
+	attemptKey := fmt.Sprintf("attempts:%s:%s", userID, date)
+	return rdb.Incr(ctx, attemptKey).Err()
 }

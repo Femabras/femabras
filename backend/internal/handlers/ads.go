@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Femabras/femabras/internal/services"
@@ -15,10 +16,11 @@ import (
 const AdNetworkSecret = "your_super_secret_s2s_key"
 
 type AdRewardPayload struct {
-	UserID  string `form:"user_id" binding:"required"`
-	Reward  int    `form:"reward_amount" binding:"required"`
-	TransID string `form:"transaction_id" binding:"required"`
-	Hash    string `form:"hash" binding:"required"`
+	UserID    string `form:"user_id" binding:"required"`
+	Reward    int    `form:"reward_amount" binding:"required"`
+	TransID   string `form:"transaction_id" binding:"required"`
+	Timestamp int64  `form:"timestamp" binding:"required"`
+	Hash      string `form:"hash" binding:"required"`
 }
 
 func AdRewardWebhook(c *gin.Context) {
@@ -28,7 +30,13 @@ func AdRewardWebhook(c *gin.Context) {
 		return
 	}
 
-	expectedData := payload.TransID + payload.UserID
+	now := time.Now().Unix()
+	if now-payload.Timestamp > 300 || payload.Timestamp-now > 60 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Payload expired or invalid timestamp"})
+		return
+	}
+
+	expectedData := payload.TransID + payload.UserID + strconv.FormatInt(payload.Timestamp, 10)
 	h := hmac.New(sha256.New, []byte(AdNetworkSecret))
 	h.Write([]byte(expectedData))
 	expectedHash := hex.EncodeToString(h.Sum(nil))
@@ -42,6 +50,10 @@ func AdRewardWebhook(c *gin.Context) {
 
 	err := services.IncrementAttemptAndAdsWatched(c.Request.Context(), payload.UserID, todayStr)
 	if err != nil {
+		if err.Error() == "daily ad limit reached" {
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": "Daily ad limit reached for user"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to grant reward"})
 		return
 	}

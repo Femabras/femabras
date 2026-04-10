@@ -9,18 +9,24 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Femabras/femabras/internal/utils"
 	"github.com/hibiken/asynq"
 )
 
 func HandleVerificationEmailTask(ctx context.Context, t *asynq.Task) error {
+	decryptedData, err := utils.DecryptPayload(string(t.Payload()))
+	if err != nil {
+		return fmt.Errorf("decryption failed: %v: %w", err, asynq.SkipRetry)
+	}
+
 	var payload EmailVerificationPayload
-	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+	if err := json.Unmarshal(decryptedData, &payload); err != nil {
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
 
 	apiKey := os.Getenv("RESEND_API_KEY")
 	if apiKey == "" {
-		fmt.Println("⚠️ RESEND_API_KEY is missing. Simulating email send for:", payload.Email)
+		fmt.Println("RESEND_API_KEY is missing. Simulating email send for:", payload.Email)
 		return nil
 	}
 

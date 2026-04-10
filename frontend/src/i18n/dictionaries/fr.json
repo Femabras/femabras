@@ -1,7 +1,6 @@
 {
   "challenge": {
-    "titleDefault": "Déchiffrez le code secret",
-    "earnPrize": "et gagnez",
+    "titleDefault": "Déchiffrez. Gagnez {prize} AOA.",
     "titleWon": "🎉 Félicitations ! Code déchiffré.",
     "titleNoAttempts": "Plus de tentatives",
     "titleReady": "Le moment de vérité !",
@@ -76,5 +75,44 @@
     "loginLink": "Se connecter",
     "nameLabel": "Nom d'utilisateur",
     "namePlaceholder": "Dechiffreur99"
+  },
+  "layout": {
+    "home": "Jeu",
+    "about": "À propos",
+    "services": "Services",
+    "products": "Produits",
+    "contact": "Contact",
+    "login": "Connexion",
+    "register": "S'inscrire",
+    "logout": "Déconnexion",
+    "rights": "Tous droits réservés.",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité"
+  },
+  "pages": {
+    "aboutTitle": "À propos de Suchel",
+    "aboutSubtitle": "Ingénieur Logiciel & Producteur de Musique",
+    "aboutBio1": "Faire le pont entre l'architecture d'entreprise hautement évolutive et la production audio premium. Avec un accent particulier sur les API natives, je conçois des logiciels performants à grande échelle.",
+    "aboutBio2": "Au-delà du code, je suis un producteur de musique spécialisé dans le R&B, l'Afropop, le Kizomba, le Kuduro et l'Amapiano.",
+    "servicesTitle": "Services Premium",
+    "servicesSubtitle": "Solutions Techniques et Créatives",
+    "svcSoftware": "Architecture d'Entreprise",
+    "svcSoftwareDesc": "Systèmes backend évolutifs et applications web modernes conçus pour des millions d'utilisateurs.",
+    "svcMusic": "Production Audio et Mixage",
+    "svcMusicDesc": "Création de beats professionnels et mixage dans plusieurs genres avec des outils de pointe.",
+    "productsTitle": "Boutique Numérique",
+    "productsSubtitle": "Beats Exclusifs et E-Books",
+    "prodBeat": "Licence de Beat Exclusive",
+    "prodBeatDesc": "Instrumentaux Afropop et Amapiano haute fidélité avec stems complets.",
+    "prodBook": "E-Book d'Ingénierie",
+    "prodBookDesc": "Modèles avancés pour la mise à l'échelle des applications Go et Next.js.",
+    "btnBuy": "Acheter Maintenant",
+    "contactTitle": "Contactez-nous",
+    "contactSubtitle": "Construisons quelque chose de grand.",
+    "contactName": "Votre Nom",
+    "contactEmail": "Votre e-mail",
+    "contactMessage": "Message",
+    "btnSend": "Envoyer le Message",
+    "legalUpdated": "Dernière mise à jour : Avril 2026"
   }
 }

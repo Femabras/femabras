@@ -12,6 +12,9 @@ import (
 )
 
 type AuthRepository interface {
+	CreateRefreshToken(token *models.RefreshToken) error
+	DeleteRefreshToken(tokenString string) error
+	GetRefreshToken(tokenString string) (*models.RefreshToken, error)
 	CreateUser(user *models.User) error
 	GetUserByID(id uint) (*models.User, error)
 	GetUserByIdentifier(identifier string) (*models.User, error)
@@ -144,4 +147,18 @@ func (r *authRepository) GetUserByIdentifier(identifier string) (*models.User, e
 
 	err := r.db.Where("email = ?", identifier).First(&user).Error
 	return &user, err
+}
+
+func (r *authRepository) CreateRefreshToken(token *models.RefreshToken) error {
+	return r.db.Create(token).Error
+}
+
+func (r *authRepository) DeleteRefreshToken(tokenString string) error {
+	return r.db.Where("token = ?", tokenString).Delete(&models.RefreshToken{}).Error
+}
+
+func (r *authRepository) GetRefreshToken(tokenString string) (*models.RefreshToken, error) {
+	var token models.RefreshToken
+	err := r.db.Where("token = ?", tokenString).First(&token).Error
+	return &token, err
 }

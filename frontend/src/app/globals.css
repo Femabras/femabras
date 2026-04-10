@@ -4,6 +4,8 @@
 @theme {
   --color-background: #001514;
   --color-foreground: #fbfffe;
+  --color-brand-gold: #e5b75e;
+  --color-brand-gold-glow: rgba(229, 183, 94, 0.3);
   --font-chillax: var(--font-chillax), sans-serif;
 }
 

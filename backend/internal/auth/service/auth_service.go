@@ -25,9 +25,11 @@ import (
 
 type AuthService interface {
 	Register(ctx context.Context, req types.RegisterRequest) (uint, error)
-	VerifyOTP(ctx context.Context, userID uint, code string) (string, error)
-	HandleGoogleCallback(ctx context.Context, code string) (string, error)
-	Login(ctx context.Context, req types.LoginRequest) (string, error)
+	VerifyOTP(ctx context.Context, userID uint, code string) (string, string, error)
+	HandleGoogleCallback(ctx context.Context, code string) (string, string, error)
+	Login(ctx context.Context, req types.LoginRequest) (string, string, error)
+	RevokeRefreshToken(ctx context.Context, token string) error
+	RefreshTokens(ctx context.Context, refreshTokenStr string) (string, string, error)
 	RunCleanup()
 }
 
@@ -78,18 +80,18 @@ func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (
 	return pending.ID, nil
 }
 
-func (s *authService) Login(ctx context.Context, req types.LoginRequest) (string, error) {
+func (s *authService) Login(ctx context.Context, req types.LoginRequest) (string, string, error) {
 	user, err := s.repo.GetUserByIdentifier(req.Identifier)
 	if err != nil {
-		return "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		return "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials")
 	}
 
 	if !user.IsVerified {
-		return "", errors.New("please verify your phone number first")
+		return "", "", errors.New("please verify your phone number first")
 	}
 
 	todayStr := time.Now().UTC().Format("2006-01-02")
@@ -98,22 +100,22 @@ func (s *authService) Login(ctx context.Context, req types.LoginRequest) (string
 	return s.generateToken(user.ID)
 }
 
-func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string) (string, error) {
+func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string) (string, string, error) {
 	pending, err := s.repo.GetPendingUserByID(pendingID)
 	if err != nil {
-		return "", errors.New("invalid request")
+		return "", "", errors.New("invalid request")
 	}
 	if time.Now().After(pending.ExpiresAt) {
-		return "", errors.New("OTP expired")
+		return "", "", errors.New("OTP expired")
 	}
 	if pending.Attempts >= 5 {
-		return "", errors.New("too many attempts")
+		return "", "", errors.New("too many attempts")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(pending.OTPCode), []byte(code))
 	if err != nil {
 		_ = s.repo.IncrementOTPFail(pendingID)
-		return "", errors.New("invalid OTP")
+		return "", "", errors.New("invalid OTP")
 	}
 
 	user := models.User{
@@ -126,7 +128,7 @@ func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string
 		user.Email = &pending.Email
 	}
 	if err := s.repo.CreateUser(&user); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	todayStr := time.Now().UTC().Format("2006-01-02")
@@ -143,16 +145,16 @@ func GetGoogleAuthURL(state string) string {
 	return googleOauthConfig.AuthCodeURL(state)
 }
 
-func (s *authService) HandleGoogleCallback(ctx context.Context, code string) (string, error) {
+func (s *authService) HandleGoogleCallback(ctx context.Context, code string) (string, string, error) {
 	token, err := googleOauthConfig.Exchange(ctx, code)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	client := googleOauthConfig.Client(ctx, token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 
@@ -162,19 +164,24 @@ func (s *authService) HandleGoogleCallback(ctx context.Context, code string) (st
 		Name  string `json:"name"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	user, err := s.repo.GetUserByIdentifier(userInfo.Email)
-	if err != nil {
+	if err == nil {
+		if user.GoogleID == nil || *user.GoogleID == "" {
+			return "", "", errors.New("an account with this email already exists. Please log in with your password")
+		}
+	} else {
 		emailVal := userInfo.Email
 		user = &models.User{
-			GoogleID: &userInfo.ID,
-			Email:    &emailVal,
-			Name:     userInfo.Name,
+			GoogleID:   &userInfo.ID,
+			Email:      &emailVal,
+			Name:       userInfo.Name,
+			IsVerified: true,
 		}
 		if err := s.repo.CreateUser(user); err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
@@ -184,13 +191,35 @@ func (s *authService) HandleGoogleCallback(ctx context.Context, code string) (st
 	return s.generateToken(user.ID)
 }
 
-func (s *authService) generateToken(userID uint) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+func (s *authService) RevokeRefreshToken(ctx context.Context, token string) error {
+	return s.repo.DeleteRefreshToken(token)
+}
+
+func (s *authService) generateToken(userID uint) (string, string, error) {
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": fmt.Sprintf("%d", userID),
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		"exp":     time.Now().Add(15 * time.Minute).Unix(),
 	})
 
-	return token.SignedString([]byte(s.cfg.JWTSecret))
+	signedAccess, err := accessToken.SignedString([]byte(s.cfg.JWTSecret))
+	if err != nil {
+		return "", "", err
+	}
+
+	b := make([]byte, 32)
+	_, err = rand.Read(b)
+	if err != nil {
+		return "", "", err
+	}
+	refreshToken := fmt.Sprintf("%x", b)
+
+	err = s.repo.CreateRefreshToken(&models.RefreshToken{
+		UserID:    userID,
+		Token:     refreshToken,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	})
+
+	return signedAccess, refreshToken, err
 }
 
 func (s *authService) generateSecureOTP(length int) string {
@@ -201,6 +230,22 @@ func (s *authService) generateSecureOTP(length int) string {
 		result[i] = digits[num.Int64()]
 	}
 	return string(result)
+}
+
+func (s *authService) RefreshTokens(ctx context.Context, refreshTokenStr string) (string, string, error) {
+	tokenRecord, err := s.repo.GetRefreshToken(refreshTokenStr)
+	if err != nil {
+		return "", "", errors.New("invalid refresh token")
+	}
+
+	if time.Now().After(tokenRecord.ExpiresAt) {
+		_ = s.repo.DeleteRefreshToken(refreshTokenStr)
+		return "", "", errors.New("refresh token expired")
+	}
+
+	_ = s.repo.DeleteRefreshToken(refreshTokenStr)
+
+	return s.generateToken(tokenRecord.UserID)
 }
 
 func (s *authService) RunCleanup() {

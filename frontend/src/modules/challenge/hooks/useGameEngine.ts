@@ -8,6 +8,7 @@ import { THEME_CONFIG } from "@/shared/config/theme";
 import { APIError } from "@/shared/lib/errors";
 import { CHALLENGE_CONFIG } from "@/shared/config/constants";
 import { challengeUtils } from "../utils/challenge.utils";
+import { dispatchAttemptsUpdate } from "@/shared/lib/events"; // 🟢 FIX: Imported the Native Event Bus
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { env } from "@/shared/config/env";
 
@@ -35,6 +36,12 @@ export function useGameEngine(
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [isOverSlot, setIsOverSlot] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // 🟢 FIX: Centralized Event Broadcaster
+  // Whenever the attempts change in the game engine, instantly sync the Header badge
+  useEffect(() => {
+    dispatchAttemptsUpdate(attempts);
+  }, [attempts]);
 
   useEffect(() => {
     if (isAuthenticated) return;

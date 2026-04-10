@@ -15,7 +15,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       secondary:
         "border-2 border-foreground/20 text-foreground/80 hover:bg-white/5",
       warning:
-        "bg-yellow-500 text-black shadow-xl shadow-yellow-500/40 hover:scale-105",
+        "bg-brand-gold text-background shadow-[0_0_15px_var(--color-brand-gold-glow)] hover:scale-105",
     };
 
     return (

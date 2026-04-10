@@ -12,6 +12,8 @@ import (
 	"github.com/Femabras/femabras/internal/utils"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (h *ChallengeHandler) SubmitGuess(c *gin.Context) {
@@ -39,51 +41,66 @@ func (h *ChallengeHandler) SubmitGuess(c *gin.Context) {
 		return
 	}
 
-	var challenge models.Challenge
-
-	if err := h.DB.Where("release_date = ? AND is_active = ?", time.Now().UTC().Truncate(24*time.Hour), true).First(&challenge).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "No active challenge today"})
-		return
-	}
-
-	if len(req.Guess) != len(challenge.SecretCode) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Guess must be exactly %d digits", len(challenge.SecretCode))})
-		return
-	}
-
-	allowed := make(map[rune]bool)
-	for _, r := range challenge.SecretCode {
-		allowed[r] = true
-	}
-	for _, r := range req.Guess {
-		if !allowed[r] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid digit"})
-			return
-		}
-	}
-
 	status := "incorrect"
 
-	if req.Guess == challenge.SecretCode {
-		status = "success"
-		services.LockOnSuccess(context.Background(), userID, todayStr)
+	err = h.DB.Transaction(func(tx *gorm.DB) error {
+		var challenge models.Challenge
 
-		var user models.User
-		h.DB.First(&user, userID)
-
-		winnerName := "Anonymous Hero"
-
-		if user.Name != "" {
-			winnerName = user.Name
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("release_date = ? AND is_active = ?", time.Now().UTC().Truncate(24*time.Hour), true).
+			First(&challenge).Error; err != nil {
+			return err
 		}
 
-		h.DB.Model(&challenge).Updates(map[string]interface{}{
-			"is_active":   false,
-			"winner_id":   userID,
-			"winner_name": winnerName,
-			"winner_pic":  user.Picture,
-		})
+		if len(req.Guess) != len(challenge.SecretCode) {
+			return fmt.Errorf("guess must be exactly %d digits", len(challenge.SecretCode))
+		}
 
+		allowed := make(map[rune]bool)
+		for _, r := range challenge.SecretCode {
+			allowed[r] = true
+		}
+		for _, r := range req.Guess {
+			if !allowed[r] {
+				return fmt.Errorf("invalid digit")
+			}
+		}
+
+		if req.Guess == challenge.SecretCode {
+			status = "success"
+			services.LockOnSuccess(context.Background(), userID, todayStr)
+
+			var user models.User
+			if err := tx.First(&user, userID).Error; err != nil {
+				return fmt.Errorf("user not found for winner assignment")
+			}
+
+			winnerName := "Anonymous Hero"
+			if user.Name != "" {
+				winnerName = user.Name
+			}
+
+			return tx.Model(&challenge).Updates(map[string]interface{}{
+				"is_active":   false,
+				"winner_id":   userID,
+				"winner_name": winnerName,
+				"winner_pic":  user.Picture,
+			}).Error
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		if err.Error() == "invalid digit" || err.Error() == "guess must be exactly..." {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"error": "No active challenge available or already won"})
+		}
+		return
+	}
+
+	if status == "success" {
 		remaining = 0
 	}
 
@@ -93,6 +110,7 @@ func (h *ChallengeHandler) SubmitGuess(c *gin.Context) {
 	})
 }
 
+// ClaimPrize remains the same below...
 func (h *ChallengeHandler) ClaimPrize(c *gin.Context) {
 	var req models.ClaimRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -19,7 +19,7 @@ func Auth(cfg *config.Config, db *gorm.DB) gin.HandlerFunc {
 
 		var tokenStr string
 
-		cookieToken, err := c.Cookie("auth_token")
+		cookieToken, err := c.Cookie("access_token")
 		if err == nil {
 			tokenStr = cookieToken
 		} else {
@@ -30,7 +30,11 @@ func Auth(cfg *config.Config, db *gorm.DB) gin.HandlerFunc {
 			}
 			tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
 		}
+
 		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
 			return []byte(cfg.JWTSecret), nil
 		})
 

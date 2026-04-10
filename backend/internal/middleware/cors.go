@@ -8,7 +8,7 @@ import (
 )
 
 func CORS(allowedOriginsStr string) gin.HandlerFunc {
-	// Parse the comma-separated string into a clean list of allowed URLs
+
 	origins := strings.Split(allowedOriginsStr, ",")
 	validOrigins := make([]string, 0)
 	for _, o := range origins {
@@ -21,13 +21,11 @@ func CORS(allowedOriginsStr string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestOrigin := c.Request.Header.Get("Origin")
 
-		// Default to the first origin as a fallback
 		originToSet := ""
 		if len(validOrigins) > 0 {
 			originToSet = validOrigins[0]
 		}
 
-		// If the incoming request matches ANY of the allowed domains, echo it back!
 		for _, allowed := range validOrigins {
 			if requestOrigin == allowed {
 				originToSet = requestOrigin

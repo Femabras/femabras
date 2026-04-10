@@ -5,6 +5,7 @@ services:
     restart: always
     ports:
       - "6379:6379"
+
   db:
     image: postgres:17-alpine
     container_name: femabras-db
@@ -14,12 +15,15 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-femabras}
     ports:
-      - "5433:5433"
+      # FIX: Host port 5433 maps to container internal port 5432
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
     container_name: femabras-api
     restart: always
     ports:
@@ -31,19 +35,32 @@ services:
       FRONTEND_URL: http://localhost:3000
       ALLOWED_ORIGINS: http://localhost:3000
       REDIS_URL: redis://redis:6379/0
+    volumes:
+      # Bind mount: Syncs your local Go files directly into the container
+      - ./backend:/app
     depends_on:
       - db
       - redis
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     container_name: femabras-web
     restart: always
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:8080
-      # API_URL: http://femabras-api:8080
+      # NEXT_PUBLIC_ is for the browser. It must be localhost because the browser isn't inside the Docker network.
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+      # Internal URL for Server Components fetching API during SSR
+      API_INTERNAL_URL: http://backend:8080
+    volumes:
+      # Bind mount: Syncs your local React/Next.js files instantly
+      - ./frontend:/app
+      # Anonymous volumes: Prevents your Fedora local modules from overwriting Alpine Linux container modules
+      - /app/node_modules
+      - /app/.next
     depends_on:
       - backend
 

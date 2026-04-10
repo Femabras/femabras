@@ -26,3 +26,10 @@ type PendingUser struct {
 	Attempts     int       `gorm:"default:0"`
 	ExpiresAt    time.Time `gorm:"index"`
 }
+
+type RefreshToken struct {
+	gorm.Model
+	UserID    uint      `gorm:"not null;index"`
+	Token     string    `gorm:"uniqueIndex;not null"`
+	ExpiresAt time.Time `gorm:"not null"`
+}

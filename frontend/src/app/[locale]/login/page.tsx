@@ -12,19 +12,15 @@ export default async function LoginPage({
   const dict = await getDictionary(locale);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 relative">
-      {/* Subtle background glow effect */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-yellow-500/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="flex flex-1 flex-col items-center justify-center w-full px-4 py-12 relative">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-gold/10 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="w-full max-w-md mb-8 z-10">
+      <div className="w-full max-w-md flex flex-col gap-6 z-10">
         <Link
           href="/"
-          className="text-sm font-bold text-foreground/50 hover:text-yellow-400 transition-colors">
+          className="text-sm font-bold text-foreground/50 hover:text-brand-gold transition-colors">
           {dict.auth.backToGame}
         </Link>
-      </div>
-
-      <div className="z-10 w-full">
         <LoginForm dict={dict.auth} />
       </div>
     </div>
