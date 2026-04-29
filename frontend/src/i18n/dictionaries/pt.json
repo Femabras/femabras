@@ -22,6 +22,16 @@
     "logout": "Sair",
     "outOfAttemptsMsg": "Usou todas as suas tentativas de hoje. Desbloqueie mais para continuar a jogar!",
     "btnWatchAd": "Ver Anúncio (+1)",
+    "adLoading": "A carregar anúncio...",
+    "adPlaying": "Vê para ganhar...",
+    "adVerifying": "A verificar...",
+    "adTryAgain": "↺ Tentar novamente",
+    "adErrorBlocker": "Bloqueador de anúncios detetado. Desative-o para ver anúncios.",
+    "adErrorNotReady": "Sistema de anúncios não está pronto. Tente novamente.",
+    "adErrorNoAds": "Sem anúncios disponíveis agora. Tente mais tarde.",
+    "adErrorFailed": "Falha ao carregar anúncio. Tente novamente.",
+    "adErrorVerify": "Não foi possível verificar a recompensa. Verifique as suas tentativas.",
+    "adErrorDelayed": "Verificação da recompensa atrasada. Verifique as suas tentativas.",
     "btnBuyAttempts": "Comprar Tentativas",
     "podiumTitle": "Desafio Conquistado!",
     "podiumSubtitle": "O código secreto de hoje foi decifrado por",
@@ -85,6 +95,7 @@
     "login": "Entrar",
     "register": "Criar Conta",
     "logout": "Sair",
+    "attempts": "Tentativas",
     "rights": "Todos os direitos reservados.",
     "terms": "Termos de Serviço",
     "privacy": "Política de Privacidade"
@@ -113,6 +124,9 @@
     "contactEmail": "O seu Email",
     "contactMessage": "Mensagem",
     "btnSend": "Enviar Mensagem",
+    "contactSending": "A enviar...",
+    "contactSuccessTitle": "Mensagem enviada!",
+    "contactSuccessMsg": "Entraremos em contacto em breve.",
     "legalUpdated": "Última Atualização: Abril 2026"
   }
 }

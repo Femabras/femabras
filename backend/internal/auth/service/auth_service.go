@@ -16,6 +16,7 @@ import (
 	"github.com/Femabras/femabras/internal/config"
 	"github.com/Femabras/femabras/internal/models"
 	"github.com/Femabras/femabras/internal/services"
+	"github.com/Femabras/femabras/internal/utils"
 	"github.com/Femabras/femabras/internal/worker"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -40,11 +41,7 @@ type authService struct {
 }
 
 func NewAuthService(repo repository.AuthRepository, cfg *config.Config, asynqClient *asynq.Client) AuthService {
-	return &authService{
-		repo:        repo,
-		cfg:         cfg,
-		asynqClient: asynqClient,
-	}
+	return &authService{repo: repo, cfg: cfg, asynqClient: asynqClient}
 }
 
 func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (uint, error) {
@@ -52,9 +49,17 @@ func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (
 		return 0, errors.New("an account with this email already exists")
 	}
 
-	hashed, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return 0, fmt.Errorf("failed to secure password: %w", err)
+	}
+
 	otpCode := s.generateSecureOTP(6)
-	hashedOTP, _ := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
+
+	hashedOTP, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
+	if err != nil {
+		return 0, fmt.Errorf("failed to secure OTP: %w", err)
+	}
 
 	pending := models.PendingUser{
 		Name:         req.Name,
@@ -65,15 +70,12 @@ func (s *authService) Register(ctx context.Context, req types.RegisterRequest) (
 	}
 
 	if err := s.repo.CreatePendingUser(&pending); err != nil {
-		return 0, errors.New("registration already in progress for this number")
+		return 0, errors.New("registration already in progress for this email")
 	}
 
-	if req.Email != "" {
-		if s.asynqClient != nil {
-			err := worker.EnqueueVerificationEmail(s.asynqClient, req.Email, otpCode)
-			if err != nil {
-				log.Printf("CRITICAL: Failed to queue email for %s: %v", req.Email, err)
-			}
+	if req.Email != "" && s.asynqClient != nil {
+		if err := worker.EnqueueVerificationEmail(s.asynqClient, req.Email, otpCode); err != nil {
+			log.Printf("CRITICAL: Failed to queue email for %s: %v", req.Email, err)
 		}
 	}
 
@@ -91,11 +93,11 @@ func (s *authService) Login(ctx context.Context, req types.LoginRequest) (string
 	}
 
 	if !user.IsVerified {
-		return "", "", errors.New("please verify your phone number first")
+		return "", "", errors.New("please verify your email address first")
 	}
 
 	todayStr := time.Now().UTC().Format("2006-01-02")
-	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr)
+	_, _ = services.GetOrCreateAttempts(ctx, fmt.Sprintf("%d", user.ID), todayStr)
 
 	return s.generateToken(user.ID)
 }
@@ -112,8 +114,7 @@ func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string
 		return "", "", errors.New("too many attempts")
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(pending.OTPCode), []byte(code))
-	if err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(pending.OTPCode), []byte(code)); err != nil {
 		_ = s.repo.IncrementOTPFail(pendingID)
 		return "", "", errors.New("invalid OTP")
 	}
@@ -124,15 +125,13 @@ func (s *authService) VerifyOTP(ctx context.Context, pendingID uint, code string
 		PasswordHash: pending.PasswordHash,
 		IsVerified:   true,
 	}
-	if pending.Email != "" {
-		user.Email = &pending.Email
-	}
+
 	if err := s.repo.CreateUser(&user); err != nil {
 		return "", "", err
 	}
 
-	todayStr := time.Now().UTC().Format("2006-01-02")
-	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr)
+	todayStr := utils.GetTodayDateString()
+	_, _ = services.GetOrCreateAttempts(ctx, fmt.Sprintf("%d", user.ID), todayStr)
 
 	_ = s.repo.DeletePendingUser(pending.ID)
 	return s.generateToken(user.ID)
@@ -185,13 +184,20 @@ func (s *authService) HandleGoogleCallback(ctx context.Context, code string) (st
 		}
 	}
 
-	todayStr := time.Now().UTC().Format("2006-01-02")
-	_, _ = services.GetOrCreateAttempts(context.Background(), fmt.Sprintf("%d", user.ID), todayStr)
+	todayStr := utils.GetTodayDateString()
+	_, _ = services.GetOrCreateAttempts(ctx, fmt.Sprintf("%d", user.ID), todayStr)
 
 	return s.generateToken(user.ID)
 }
 
+// RevokeRefreshToken deletes the refresh token and immediately invalidates the
+// user's auth cache so the middleware stops trusting the cached entry.
 func (s *authService) RevokeRefreshToken(ctx context.Context, token string) error {
+	// Look up the token first to get the userID for cache invalidation
+	tokenRecord, err := s.repo.GetRefreshToken(token)
+	if err == nil {
+		services.InvalidateUserCache(ctx, fmt.Sprintf("%d", tokenRecord.UserID))
+	}
 	return s.repo.DeleteRefreshToken(token)
 }
 
@@ -207,8 +213,7 @@ func (s *authService) generateToken(userID uint) (string, string, error) {
 	}
 
 	b := make([]byte, 32)
-	_, err = rand.Read(b)
-	if err != nil {
+	if _, err = rand.Read(b); err != nil {
 		return "", "", err
 	}
 	refreshToken := fmt.Sprintf("%x", b)
@@ -244,7 +249,6 @@ func (s *authService) RefreshTokens(ctx context.Context, refreshTokenStr string)
 	}
 
 	_ = s.repo.DeleteRefreshToken(refreshTokenStr)
-
 	return s.generateToken(tokenRecord.UserID)
 }
 

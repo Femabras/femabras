@@ -1,4 +1,4 @@
-//femabras/frontend/src/shared/components/layout/attempts-badge.client.tsx
+// femabras/frontend/src/shared/components/layout/attempts-badge.client.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -7,36 +7,32 @@ import { ATTEMPTS_EVENT } from "@/shared/lib/events";
 
 interface AttemptsBadgeProps {
   initialAttempts: number;
+  /** i18n label — pass dict.layout.attempts from the server component */
+  label: string;
   containerClassName?: string;
   textClassName?: string;
 }
 
 export function AttemptsBadge({
   initialAttempts,
+  label,
   containerClassName,
   textClassName,
 }: AttemptsBadgeProps) {
   const [attempts, setAttempts] = useState(initialAttempts);
   const [isAnimating, setIsAnimating] = useState(false);
-
-  // 🟢 FIX: Safely store the timeout ID across renders
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // 🟢 FIX: Accept the standard DOM Event to satisfy TypeScript, then cast internally
     const handleAttemptsChange = (e: Event) => {
       const customEvent = e as CustomEvent<number>;
       setAttempts(customEvent.detail);
-
       setIsAnimating(true);
-
-      // Clear any existing timer to prevent animation glitches on rapid clicks
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => setIsAnimating(false), 300);
     };
 
     window.addEventListener(ATTEMPTS_EVENT, handleAttemptsChange);
-
     return () => {
       window.removeEventListener(ATTEMPTS_EVENT, handleAttemptsChange);
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -61,7 +57,7 @@ export function AttemptsBadge({
           "text-[10px] font-bold uppercase tracking-widest text-brand-gold",
           textClassName,
         )}>
-        Attempts
+        {label}
       </span>
     </div>
   );

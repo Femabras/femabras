@@ -10,7 +10,14 @@ export function LanguageSwitcher({ currentLocale }: { currentLocale: string }) {
   const handleLocaleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLocale = e.target.value;
 
-    const newPath = pathname.replace(`/${currentLocale}`, `/${newLocale}`);
+    // Split on "/" and replace only the locale segment (index 1).
+    // e.g. "/en/about" → ["", "en", "about"] → ["", "fr", "about"] → "/fr/about"
+    // The old string-replace approach could corrupt URLs where the locale
+    // string appeared elsewhere (e.g. query params or slugs like "/en-products").
+    const segments = pathname.split("/");
+    segments[1] = newLocale;
+    const newPath = segments.join("/");
+
     router.push(newPath);
     router.refresh();
   };
@@ -31,7 +38,6 @@ export function LanguageSwitcher({ currentLocale }: { currentLocale: string }) {
           FR
         </option>
       </select>
-      {/* Custom dropdown arrow */}
       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-foreground/50">
         <svg
           className="fill-current h-4 w-4"

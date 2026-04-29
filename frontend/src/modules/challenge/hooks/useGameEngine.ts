@@ -1,4 +1,4 @@
-//femabras/frontend/src/modules/challenge/hooks/useGameEngine.ts
+// femabras/frontend/src/modules/challenge/hooks/useGameEngine.ts
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { DragEndEvent, DragStartEvent, DragOverEvent } from "@dnd-kit/core";
@@ -8,9 +8,8 @@ import { THEME_CONFIG } from "@/shared/config/theme";
 import { APIError } from "@/shared/lib/errors";
 import { CHALLENGE_CONFIG } from "@/shared/config/constants";
 import { challengeUtils } from "../utils/challenge.utils";
-import { dispatchAttemptsUpdate } from "@/shared/lib/events"; // 🟢 FIX: Imported the Native Event Bus
+import { dispatchAttemptsUpdate } from "@/shared/lib/events";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { env } from "@/shared/config/env";
 
 export function useGameEngine(
   slotsCount: number,
@@ -37,8 +36,7 @@ export function useGameEngine(
   const [isOverSlot, setIsOverSlot] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // 🟢 FIX: Centralized Event Broadcaster
-  // Whenever the attempts change in the game engine, instantly sync the Header badge
+  // Sync the header attempts badge whenever local count changes
   useEffect(() => {
     dispatchAttemptsUpdate(attempts);
   }, [attempts]);
@@ -50,7 +48,6 @@ export function useGameEngine(
 
   useEffect(() => {
     if (!isAuthenticated) return;
-
     challengeClientService.fetchLiveAttempts().then((liveAttempts) => {
       setAttempts(liveAttempts);
       challengeClientService.saveTodayAttempts(liveAttempts);
@@ -109,30 +106,38 @@ export function useGameEngine(
     toastTimeoutRef.current = setTimeout(() => setToastMsg(null), 3000);
   };
 
-  // The Free-Tier Realtime Pulse
+  // ── SSE: Real-time challenge status ────────────────────────────────────────
+  // Replaces the previous 20-second polling interval.
+  // At 10k+ users, polling generated ~500 req/sec against the backend.
+  // With SSE each user holds one persistent connection and receives a single
+  // push event when someone wins — zero polling overhead.
   useEffect(() => {
     if (hasWon || isOutOfAttempts) return;
 
-    const pulse = setInterval(async () => {
-      try {
-        const res = await fetch(`${env.apiUrl}/challenge`, {
-          cache: "no-store",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === "solved") {
-            router.refresh();
-          }
-        }
-      } catch (e) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn("Background pulse failed to reach server:", e);
-        }
-      }
-    }, 20000);
+    // NEXT_PUBLIC_API_URL is always the public URL (browser-accessible)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-    return () => clearInterval(pulse);
+    const es = new EventSource(`${apiUrl}/challenge/stream`);
+
+    es.addEventListener("challenge", (e: MessageEvent) => {
+      if (e.data === "solved") {
+        // Another player just won — refresh to show the winner podium
+        router.refresh();
+      }
+    });
+
+    // EventSource auto-reconnects on transient errors — no manual retry needed.
+    // Log in dev only so production logs stay clean.
+    es.onerror = () => {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("SSE connection error — EventSource will auto-reconnect");
+      }
+    };
+
+    return () => es.close();
   }, [hasWon, isOutOfAttempts, router]);
+
+  // ── Actions ────────────────────────────────────────────────────────────────
 
   const submitSequence = async () => {
     if (!isAuthenticated) {

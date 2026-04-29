@@ -22,6 +22,8 @@ type Config struct {
 	FromEmail          string
 	AdminEmail         string
 	RedisURL           string
+	AdNetworkSecret    string
+	ResendAPIKey       string
 }
 
 func Load() Config {
@@ -40,7 +42,7 @@ func Load() Config {
 	}
 
 	cfg.GoogleClientID = os.Getenv("GOOGLE_CLIENT_ID")
-	cfg.GoogleClientSecret = os.Getenv("Google_CLIENT_SECRET")
+	cfg.GoogleClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
 	cfg.GoogleRedirectURL = os.Getenv("GOOGLE_REDIRECT_URL")
 	cfg.AppName = getEnvOrDefault("APP_NAME", "Femabras Daily Challenge")
 	cfg.SMTPHost = getEnvOrDefault("SMTP_HOST", "smtp.gmail.com")
@@ -50,6 +52,12 @@ func Load() Config {
 	cfg.FromEmail = os.Getenv("FROM_EMAIL")
 	cfg.AdminEmail = os.Getenv("ADMIN_EMAIL")
 	cfg.RedisURL = os.Getenv("REDIS_URL")
+	cfg.AdNetworkSecret = os.Getenv("AD_NETWORK_SECRET")
+	cfg.ResendAPIKey = os.Getenv("RESEND_API_KEY")
+
+	if cfg.AdNetworkSecret == "" {
+		log.Println("WARNING: AD_NETWORK_SECRET is not set — ad reward webhooks will reject all requests")
+	}
 
 	return cfg
 }

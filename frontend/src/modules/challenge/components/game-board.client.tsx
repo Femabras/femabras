@@ -1,4 +1,4 @@
-//femabras/frontend/src/modules/challenge/components/game-board.client.tsx
+// femabras/frontend/src/modules/challenge/components/game-board.client.tsx
 "use client";
 
 import { useRef } from "react";
@@ -48,7 +48,7 @@ export function GameBoard({
 
   if (!dict || !challenge) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[100px]">
+      <div className="flex flex-col items-center justify-center min-h-25">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="h-12 w-48 bg-white/5 rounded-xl" />
           <div className="h-24 w-64 bg-white/5 rounded-2xl" />
@@ -74,7 +74,7 @@ export function GameBoard({
   return (
     <div className="flex flex-1 flex-col items-center justify-center touch-none w-full relative px-4 py-8">
       {state.toastMsg && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-4 fade-in duration-300">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-100 animate-in slide-in-from-bottom-4 fade-in duration-300">
           <div className={UI.toast}>
             <span>⚠️</span> {state.toastMsg}
           </div>
@@ -102,7 +102,6 @@ export function GameBoard({
           <div
             className="flex flex-col items-center w-full"
             style={{ opacity: state.authPrompt.isActive ? 0.1 : 1 }}>
-            {/* 🟢 FIX: Added massive bottom margin (mb-8 sm:mb-12) to let the headline breathe */}
             <h1 className="mb-8 sm:mb-12 text-[clamp(1.5rem,5vw,3.5rem)] font-black tracking-tight text-foreground text-center leading-tight sm:leading-snug">
               {displayTitle.split(formattedPrize).map((part, i, arr) => (
                 <span key={i}>
@@ -124,8 +123,10 @@ export function GameBoard({
                     {dict.outOfAttemptsMsg}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 w-full mt-2">
+                    {/* dict prop added — all ad button strings are now i18n */}
                     <AdButton
                       label={dict.btnWatchAd}
+                      dict={dict}
                       onRewardGranted={(newAttempts: number) =>
                         actions.setAttempts(newAttempts)
                       }
@@ -141,7 +142,6 @@ export function GameBoard({
                 </div>
               ) : (
                 <>
-                  {/* 🟢 FIX: Swapped Grid for Flex-Row so the boxes cluster tightly in the center */}
                   <div className="flex flex-nowrap justify-center items-center gap-2 sm:gap-4 mx-auto w-full px-2">
                     {state.slots.map((slotObj, i) => (
                       <div
@@ -202,14 +202,14 @@ export function GameBoard({
           </div>
 
           <div
-            className="flex flex-col items-center justify-center w-full min-h-[80px] mt-4"
+            className="flex flex-col items-center justify-center w-full min-h-20 mt-4"
             style={{ opacity: state.authPrompt.isActive ? 0.1 : 1 }}>
             {state.hasWon ? (
               <ClaimPrizeForm prizeAmount={challenge.prize} dict={dict} />
             ) : state.isOutOfAttempts ? null : (
               <>
                 {showTray ? (
-                  <div className="token-tray flex flex-wrap justify-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full max-w-[280px] sm:max-w-md mx-auto">
+                  <div className="token-tray flex flex-wrap justify-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full max-w-70 sm:max-w-md mx-auto">
                     {state.trayDigits.map((digit) => (
                       <div
                         key={digit.id}

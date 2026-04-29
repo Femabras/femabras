@@ -18,7 +18,8 @@ func CreateOrGetTodayChallenge(db *gorm.DB) (*models.Challenge, error) {
 	var challenge models.Challenge
 	err := db.Where("release_date = ?", today).First(&challenge).Error
 	if err == nil {
-		log.Printf("Found existing challenge for %s: %s", today.Format("2006-01-02"), challenge.SecretCode)
+		// SecretCode intentionally omitted from logs — it is the answer to the game
+		log.Printf("Found existing challenge for %s (ID: %d)", today.Format("2006-01-02"), challenge.ID)
 		return &challenge, nil
 	}
 
@@ -50,26 +51,24 @@ func CreateOrGetTodayChallenge(db *gorm.DB) (*models.Challenge, error) {
 		return nil, fmt.Errorf("create challenge: %w", err)
 	}
 
-	log.Printf("Created new challenge for %s: %s (length %d, prize %d AOA)", today.Format("2006-01-02"), secret, difficulty, prize)
+	// SecretCode intentionally omitted from logs — it is the answer to the game
+	log.Printf("Created new challenge for %s (ID: %d, length: %d, prize: %d AOA)",
+		today.Format("2006-01-02"), newChallenge.ID, difficulty, prize)
 
 	return &newChallenge, nil
 }
 
 func generateWeightedLength() int {
-	// Roll a number between 0 and 99
 	roll, _ := rand.Int(rand.Reader, big.NewInt(100))
 	val := roll.Int64()
 
 	switch {
 	case val < 60:
-		// 60% chance: Length 4 or 5 (The standard game)
 		subRoll, _ := rand.Int(rand.Reader, big.NewInt(2))
 		return 4 + int(subRoll.Int64())
 	case val < 90:
-		// 30% chance: Length 6 (The hard game)
 		return 6
 	default:
-		// 10% chance: Length 7 (The extreme jackpot game)
 		return 7
 	}
 }

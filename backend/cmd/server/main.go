@@ -13,23 +13,29 @@ import (
 
 	"github.com/Femabras/femabras/internal/auth/repository"
 	"github.com/Femabras/femabras/internal/auth/service"
+	challengeRepo "github.com/Femabras/femabras/internal/challenge/repository"
+	challengeSvc "github.com/Femabras/femabras/internal/challenge/service"
 	"github.com/Femabras/femabras/internal/config"
 	"github.com/Femabras/femabras/internal/database"
 	"github.com/Femabras/femabras/internal/middleware"
 	"github.com/Femabras/femabras/internal/routes"
 	"github.com/Femabras/femabras/internal/services"
 	"github.com/Femabras/femabras/internal/worker"
-	"github.com/hibiken/asynq"
-
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 )
 
 func main() {
+	cfg := config.Load()
+
+	if cfg.JWTSecret == "" || cfg.DatabaseURL == "" {
+		log.Fatal("Missing required environment variables (JWTSecret, DatabaseURL, etc.)")
+	}
 
 	redisURL := os.Getenv("REDIS_URL")
 	redisOpt, err := asynq.ParseRedisURI(redisURL)
 	if err != nil {
-		panic("Failed to parse Redis URI: " + err.Error())
+		log.Fatalf("Failed to parse Redis URI: %v", err)
 	}
 
 	asynqClient := asynq.NewClient(redisOpt)
@@ -47,13 +53,9 @@ func main() {
 			fmt.Printf("could not start asynq server: %v\n", err)
 		}
 	}()
-	cfg := config.Load()
-
-	if cfg.JWTSecret == "" || cfg.DatabaseURL == "" {
-		log.Fatal("Missing required environment variables (JWTSecret, DatabaseURL, etc.)")
-	}
 
 	service.InitGoogleOAuth(&cfg)
+
 	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Database connection failed: %v", err)
@@ -64,10 +66,11 @@ func main() {
 	authRepo := repository.NewAuthRepository(db)
 	authSvc := service.NewAuthService(authRepo, &cfg, asynqClient)
 
-	_, err = services.CreateOrGetTodayChallenge(db)
-	if err != nil {
-		log.Panicf("Failed to initialize daily challenge: %v", err)
-		return
+	challengeRepository := challengeRepo.NewChallengeRepository(db)
+	challengeService := challengeSvc.NewChallengeService(challengeRepository)
+
+	if _, err = services.CreateOrGetTodayChallenge(db); err != nil {
+		log.Fatalf("Failed to initialize daily challenge: %v", err)
 	}
 
 	gin.SetMode(gin.ReleaseMode)
@@ -76,7 +79,7 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORS(cfg.FrontendURL))
 
-	routes.Setup(r, db, &cfg, authSvc)
+	routes.Setup(r, db, &cfg, authSvc, challengeService)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

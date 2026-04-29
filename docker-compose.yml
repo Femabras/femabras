@@ -2,30 +2,44 @@ services:
   redis:
     image: redis:7-alpine
     container_name: femabras-redis
-    restart: always
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   db:
     image: postgres:17-alpine
     container_name: femabras-db
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-femabras}
     ports:
-      # FIX: Host port 5433 maps to container internal port 5432
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-femabras}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
     container_name: femabras-api
-    restart: always
+    restart: unless-stopped
     ports:
       - "8080:8080"
     env_file:
@@ -34,31 +48,28 @@ services:
       DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-femabras}?sslmode=disable
       FRONTEND_URL: http://localhost:3000
       ALLOWED_ORIGINS: http://localhost:3000
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
     volumes:
-      # Bind mount: Syncs your local Go files directly into the container
       - ./backend:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
     container_name: femabras-web
-    restart: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      # NEXT_PUBLIC_ is for the browser. It must be localhost because the browser isn't inside the Docker network.
       NEXT_PUBLIC_API_URL: http://localhost:8080
-      # Internal URL for Server Components fetching API during SSR
       API_INTERNAL_URL: http://backend:8080
     volumes:
-      # Bind mount: Syncs your local React/Next.js files instantly
       - ./frontend:/app
-      # Anonymous volumes: Prevents your Fedora local modules from overwriting Alpine Linux container modules
       - /app/node_modules
       - /app/.next
     depends_on:

@@ -22,6 +22,16 @@
     "logout": "Déconnexion",
     "outOfAttemptsMsg": "Vous avez utilisé toutes vos tentatives pour aujourd'hui. Débloquez-en plus pour continuer à jouer !",
     "btnWatchAd": "Voir une pub (+1)",
+    "adLoading": "Chargement de la pub...",
+    "adPlaying": "Regardez pour gagner...",
+    "adVerifying": "Vérification...",
+    "adTryAgain": "↺ Réessayer",
+    "adErrorBlocker": "Bloqueur de pub détecté. Désactivez-le pour regarder des pubs.",
+    "adErrorNotReady": "Système publicitaire non prêt. Réessayez dans un instant.",
+    "adErrorNoAds": "Pas de pub disponible maintenant. Réessayez plus tard.",
+    "adErrorFailed": "Échec du chargement de la pub. Réessayez.",
+    "adErrorVerify": "Impossible de vérifier la récompense. Vérifiez vos tentatives.",
+    "adErrorDelayed": "Vérification de la récompense retardée. Vérifiez vos tentatives.",
     "btnBuyAttempts": "Acheter des tentatives",
     "podiumTitle": "Défi Relevé !",
     "podiumSubtitle": "Le code secret d'aujourd'hui a été déchiffré par",
@@ -85,6 +95,7 @@
     "login": "Connexion",
     "register": "S'inscrire",
     "logout": "Déconnexion",
+    "attempts": "Tentatives",
     "rights": "Tous droits réservés.",
     "terms": "Conditions d'utilisation",
     "privacy": "Politique de confidentialité"
@@ -113,6 +124,9 @@
     "contactEmail": "Votre e-mail",
     "contactMessage": "Message",
     "btnSend": "Envoyer le Message",
+    "contactSending": "Envoi en cours...",
+    "contactSuccessTitle": "Message envoyé !",
+    "contactSuccessMsg": "Nous vous répondrons bientôt.",
     "legalUpdated": "Dernière mise à jour : Avril 2026"
   }
 }

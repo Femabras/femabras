@@ -19,7 +19,8 @@ type User struct {
 
 type PendingUser struct {
 	gorm.Model
-	Name         string `gorm:"uniqueIndex;not null"`
+	// Name is NOT unique — two users with the same display name must be allowed
+	Name         string `gorm:"not null"`
 	Email        string `gorm:"uniqueIndex;not null"`
 	PasswordHash string
 	OTPCode      string    `gorm:"size:60"`

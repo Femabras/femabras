@@ -22,12 +22,15 @@ func Connect(dsn string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	sqlDB.SetMaxIdleConns(25)
-	sqlDB.SetMaxOpenConns(500)
+	// Postgres defaults to max_connections=100.
+	// With multiple backend instances at 10k+ scale, keep this conservative
+	// and add PgBouncer in front of Postgres when scaling horizontally.
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(20)
 	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 
 	log.Println("Running AutoMigrate...")
-
 	err = db.AutoMigrate(
 		&models.PendingUser{},
 		&models.Challenge{},

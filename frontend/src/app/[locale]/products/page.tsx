@@ -46,7 +46,7 @@ export default async function ProductsPage({
           <div
             key={idx}
             className="flex flex-col bg-white/5 border border-white/10 rounded-3xl p-6 hover:border-brand-gold/30 transition-all gap-4">
-            <div className="flex flex-col gap-2 flex-grow">
+            <div className="flex flex-col gap-2 grow">
               <span className="text-[10px] font-bold uppercase tracking-widest text-brand-gold px-3 py-1 bg-brand-gold/10 rounded-full w-fit">
                 {prod.type}
               </span>

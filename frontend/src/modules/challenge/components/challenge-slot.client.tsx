@@ -36,7 +36,7 @@ export function ChallengeSlot({
         GAME.slot(isShaking, isOver, hasValue),
         // 🟢 FIX: Fluid width on mobile (14vw), fixed max width on desktop.
         // This stops them from stretching horizontally while maintaining a perfect rectangle.
-        "w-[14vw] sm:w-16 md:w-20 h-auto aspect-[3/4] p-0 flex items-center justify-center relative shrink-0",
+        "w-[14vw] sm:w-16 md:w-20 h-auto aspect-3/4 p-0 flex items-center justify-center relative shrink-0",
       )}>
       <input
         ref={inputRef}

@@ -2,6 +2,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"crypto/subtle"
 	"fmt"
 	"net/http"
 
@@ -17,17 +19,17 @@ type AuthHandler struct {
 }
 
 func NewAuthHandler(svc service.AuthService, cfg *config.Config) *AuthHandler {
-	return &AuthHandler{
-		service: svc,
-		cfg:     cfg,
-	}
+	return &AuthHandler{service: svc, cfg: cfg}
 }
 
-func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken string, refreshToken string) {
-	isProd := h.cfg.FrontendURL != "http://localhost:3000"
+func (h *AuthHandler) isProd() bool {
+	return h.cfg.FrontendURL != "http://localhost:3000"
+}
+
+func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken, refreshToken string) {
+	isProd := h.isProd()
 	domain := ""
 	sameSite := http.SameSiteLaxMode
-
 	if isProd {
 		domain = ".femabras.com"
 		sameSite = http.SameSiteNoneMode
@@ -43,7 +45,6 @@ func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken string, refresh
 		Domain:   domain,
 		SameSite: sameSite,
 	})
-
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
@@ -57,20 +58,21 @@ func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken string, refresh
 }
 
 func (h *AuthHandler) clearAuthCookies(c *gin.Context) {
-	isProd := h.cfg.FrontendURL != "http://localhost:3000"
+	isProd := h.isProd()
 	domain := ""
 	sameSite := http.SameSiteLaxMode
-
 	if isProd {
 		domain = ".femabras.com"
 		sameSite = http.SameSiteNoneMode
 	}
 
 	http.SetCookie(c.Writer, &http.Cookie{
-		Name: "access_token", Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: isProd, Domain: domain, SameSite: sameSite,
+		Name: "access_token", Value: "", Path: "/", MaxAge: -1,
+		HttpOnly: true, Secure: isProd, Domain: domain, SameSite: sameSite,
 	})
 	http.SetCookie(c.Writer, &http.Cookie{
-		Name: "refresh_token", Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: isProd, Domain: domain, SameSite: sameSite,
+		Name: "refresh_token", Value: "", Path: "/", MaxAge: -1,
+		HttpOnly: true, Secure: isProd, Domain: domain, SameSite: sameSite,
 	})
 }
 
@@ -118,7 +120,10 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 	}
 
 	var uid uint
-	fmt.Sscanf(req.UserID, "%d", &uid)
+	if n, err := fmt.Sscanf(req.UserID, "%d", &uid); err != nil || n != 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
 
 	access, refresh, err := h.service.VerifyOTP(c.Request.Context(), uid, req.OTP)
 	if err != nil {
@@ -130,8 +135,27 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Verification successful"})
 }
 
+// GoogleLogin generates a cryptographically random CSRF state token, stores it
+// in a short-lived HttpOnly cookie, then redirects the user to Google.
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {
-	url := service.GetGoogleAuthURL("state-token")
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate state token"})
+		return
+	}
+	state := fmt.Sprintf("%x", b)
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "oauth_state",
+		Value:    state,
+		Path:     "/",
+		MaxAge:   300, // 5 minutes — enough for the OAuth round-trip
+		HttpOnly: true,
+		Secure:   h.isProd(),
+		SameSite: http.SameSiteLaxMode, // Lax allows the cookie on the return redirect from Google
+	})
+
+	url := service.GetGoogleAuthURL(state)
 	if url == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Google OAuth not configured"})
 		return
@@ -139,12 +163,25 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
+// GoogleCallback verifies the CSRF state, exchanges the code for tokens, sets
+// HttpOnly cookies, and redirects to the frontend — no tokens in the URL.
 func (h *AuthHandler) GoogleCallback(c *gin.Context) {
-	state := c.Query("state")
-	if state != "state-token" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state"})
+	stateCookie, err := c.Cookie("oauth_state")
+	if err != nil || stateCookie == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing OAuth state cookie"})
 		return
 	}
+
+	// Use constant-time comparison to prevent timing oracle on state tokens
+	if subtle.ConstantTimeCompare([]byte(c.Query("state")), []byte(stateCookie)) != 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OAuth state"})
+		return
+	}
+
+	// Immediately clear the one-time state cookie
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name: "oauth_state", Value: "", Path: "/", MaxAge: -1, HttpOnly: true,
+	})
 
 	code := c.Query("code")
 	access, refresh, err := h.service.HandleGoogleCallback(c.Request.Context(), code)
@@ -153,16 +190,16 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusFound, fmt.Sprintf("%s/auth/success?access=%s&refresh=%s", h.cfg.FrontendURL, access, refresh))
+	h.setAuthCookies(c, access, refresh)
+	// Redirect to the frontend root — no tokens in the URL
+	c.Redirect(http.StatusFound, h.cfg.FrontendURL)
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
-
 	if err == nil && refreshToken != "" {
 		h.service.RevokeRefreshToken(c.Request.Context(), refreshToken)
 	}
-
 	h.clearAuthCookies(c)
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
 }
@@ -176,7 +213,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	access, newRefresh, err := h.service.RefreshTokens(c.Request.Context(), refreshToken)
 	if err != nil {
-		h.clearAuthCookies(c) // Wipe dead cookies
+		h.clearAuthCookies(c)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}

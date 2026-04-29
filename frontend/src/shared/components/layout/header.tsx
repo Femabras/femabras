@@ -40,11 +40,12 @@ export async function Header({ dict, locale }: HeaderProps) {
             </Link>
           </div>
 
-          {/* 🟢 MOBILE ONLY: Dynamic Centered Attempts Badge */}
+          {/* Mobile: centered attempts badge */}
           {isAuthenticated && (
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex lg:hidden items-center z-0 animate-in fade-in zoom-in duration-300">
               <AttemptsBadge
                 initialAttempts={initialAttempts}
+                label={dict.attempts}
                 containerClassName="gap-1.5"
                 textClassName="hidden xs:inline-block"
               />
@@ -80,10 +81,11 @@ export async function Header({ dict, locale }: HeaderProps) {
           </nav>
 
           <div className="flex items-center gap-3 sm:gap-6 z-10">
-            {/* 🟢 DESKTOP ONLY: Dynamic Right-aligned Attempts Badge */}
+            {/* Desktop: right-aligned attempts badge */}
             {isAuthenticated && (
               <AttemptsBadge
                 initialAttempts={initialAttempts}
+                label={dict.attempts}
                 containerClassName="hidden lg:flex gap-2"
               />
             )}

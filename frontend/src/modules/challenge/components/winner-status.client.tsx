@@ -1,18 +1,51 @@
-//femabras/frontend/src/modules/challenge/components/winner-status.client.tsx
+// femabras/frontend/src/modules/challenge/components/winner-status.client.tsx
 "use client";
 
+import { useState, useEffect } from "react";
 import { cn } from "@/shared/lib/utils";
+import { env } from "@/shared/config/env";
 import type { Dictionary } from "@/i18n/get-dictionary";
+
+type PayoutStatus = "unclaimed" | "pending" | "paid" | "rejected";
 
 export function WinnerStatus({
   prize,
-  payoutStatus,
+  payoutStatus: initialStatus,
   dict,
 }: {
   prize: number;
-  payoutStatus: "unclaimed" | "pending" | "paid" | "rejected";
+  payoutStatus: PayoutStatus;
   dict: Dictionary["challenge"];
 }) {
+  const [payoutStatus, setPayoutStatus] = useState<PayoutStatus>(initialStatus);
+
+  // Poll the backend every 30 seconds while the payout is pending.
+  // The admin processes payouts manually — when they update the DB status to
+  // "paid" or "rejected", the UI will reflect it within one polling cycle
+  // without the user needing to refresh.
+  useEffect(() => {
+    if (payoutStatus !== "pending") return;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(
+          `${env.apiUrl}/challenge/my-status?t=${Date.now()}`,
+          { credentials: "include", cache: "no-store" },
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.payout_status && data.payout_status !== payoutStatus) {
+          setPayoutStatus(data.payout_status);
+        }
+      } catch {
+        // Network error — silently skip, try again next cycle
+      }
+    };
+
+    const interval = setInterval(poll, 30_000);
+    return () => clearInterval(interval);
+  }, [payoutStatus]);
+
   const steps = [
     {
       label: dict.statusCracked || "Code Cracked",
@@ -58,6 +91,13 @@ export function WinnerStatus({
             <span className="text-lg">AOA</span>
           </p>
         </div>
+
+        {/* Live indicator while pending */}
+        {payoutStatus === "pending" && (
+          <p className="mt-3 text-[11px] text-yellow-500/70 animate-pulse">
+            ● Checking for updates...
+          </p>
+        )}
       </div>
 
       <div className="relative z-10 space-y-6 pl-4">

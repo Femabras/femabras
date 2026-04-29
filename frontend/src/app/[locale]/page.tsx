@@ -1,4 +1,4 @@
-//femabras/frontend/src/app/[locale]/page.tsx
+// femabras/frontend/src/app/[locale]/page.tsx
 import { cookies } from "next/headers";
 import { challengeServerService } from "@/modules/challenge/services/challenge.server.service";
 import { GameBoard } from "@/modules/challenge/components/game-board.client";
@@ -22,11 +22,15 @@ export default async function Home({
   const isAuthenticated = cookieStore.has("access_token");
 
   let isWinner = false;
+  // Default to "unclaimed" — only overwritten when we have a real status from the API
   let payoutStatus: "unclaimed" | "pending" | "paid" | "rejected" = "unclaimed";
 
   if (challenge.status === "solved" && isAuthenticated) {
     const myStatus = await challengeServerService.getMyStatus();
     isWinner = myStatus.is_winner;
+    // Use the freshly-fetched per-user status, not challenge.payout_status
+    // (challenge.payout_status is the public endpoint's field and can disagree
+    // with the authenticated user's actual claim state)
     payoutStatus = myStatus.payout_status;
   }
 
@@ -42,7 +46,7 @@ export default async function Home({
         pageContent = (
           <WinnerStatus
             prize={challenge.prize}
-            payoutStatus={challenge.payout_status}
+            payoutStatus={payoutStatus}
             dict={dict.challenge}
           />
         );
