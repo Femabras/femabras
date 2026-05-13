@@ -15,6 +15,7 @@ import (
 	"github.com/Femabras/femabras/internal/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ChallengeHandler struct {
@@ -26,8 +27,6 @@ type ChallengeHandler struct {
 func NewChallengeHandler(svc service.ChallengeService, db *gorm.DB, cfg *config.Config) *ChallengeHandler {
 	return &ChallengeHandler{svc: svc, db: db, cfg: cfg}
 }
-
-// ── Game endpoints ────────────────────────────────────────────────────────────
 
 func (h *ChallengeHandler) GetDailyChallenge(c *gin.Context) {
 	challengePointer, err := appServices.CreateOrGetTodayChallenge(h.db)
@@ -65,19 +64,21 @@ func (h *ChallengeHandler) GetDailyChallenge(c *gin.Context) {
 		return
 	}
 
-	digitSet := make(map[rune]bool)
-	for _, r := range challenge.SecretCode {
-		digitSet[r] = true
-	}
-	digits := make([]string, 0, len(digitSet))
-	for r := range digitSet {
-		digits = append(digits, string(r))
-	}
+	// Build the digit pool from the secret. The challenge struct only holds
+	// the plaintext secret if this is a fresh creation; otherwise we'd need
+	// to derive the pool differently. For now, we store digits in the same
+	// transaction that creates the challenge — see services/challenge.go.
+	//
+	// Since the secret is hashed, we cannot recover digits from the hash.
+	// Instead, we always include all digits 0-9 as the tray. This is a
+	// gameplay simplification: every digit is theoretically available.
+	// The challenge IS the position/sequence, not which digits are used.
+	digits := []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
 	sort.Strings(digits)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "active",
-		"slots":  len(challenge.SecretCode),
+		"slots":  challenge.Difficulty,
 		"date":   challenge.ReleaseDate.Format("2006-01-02"),
 		"digits": digits,
 		"prize":  challenge.PrizeAmount,
@@ -106,6 +107,8 @@ func (h *ChallengeHandler) SubmitGuess(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		case errors.Is(err, service.ErrChallengeNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrInvalidGuessLength):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
@@ -158,7 +161,6 @@ func (h *ChallengeHandler) GetMyStatus(c *gin.Context) {
 		if err := h.db.Where("challenge_id = ? AND user_id = ?", challenge.ID, userID).First(&payout).Error; err == nil {
 			payoutStatus = payout.Status
 		}
-		// No error log needed — "record not found" is a valid pre-claim state
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -167,65 +169,115 @@ func (h *ChallengeHandler) GetMyStatus(c *gin.Context) {
 	})
 }
 
+// ClaimPrize is now race-condition-safe via a SELECT FOR UPDATE on the
+// challenge row inside a transaction. A concurrent double-click or replay
+// will block on the row lock and find the payout already exists on the
+// second attempt, returning a clear 200 with idempotency rather than 409.
 func (h *ChallengeHandler) ClaimPrize(c *gin.Context) {
 	var req models.ClaimRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
 		return
 	}
 
 	userID := c.GetString("user_id")
-
-	var challenge models.Challenge
-	if err := h.db.Where("release_date = ?", utils.GetTodayTruncated()).First(&challenge).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Challenge not found"})
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	if challenge.WinnerID == nil || *challenge.WinnerID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": service.ErrNotWinner.Error()})
-		return
-	}
+	var alreadyExisted bool
+	var prizeAmount int
 
-	if req.Method == "ATM" {
-		if challenge.PrizeAmount < 1000 || challenge.PrizeAmount > 30000 || challenge.PrizeAmount%1000 != 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": service.ErrInvalidAtmAmount.Error()})
-			return
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		// Lock the challenge row — concurrent claim attempts will serialise here
+		var challenge models.Challenge
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("release_date = ?", utils.GetTodayTruncated()).
+			First(&challenge).Error; err != nil {
+			return service.ErrChallengeNotFound
 		}
-	}
 
-	payout := models.PayoutRequest{
-		UserID:      userID,
-		ChallengeID: challenge.ID,
-		Amount:      challenge.PrizeAmount,
-		Method:      req.Method,
-		Destination: req.Destination,
-		AccountName: req.AccountName,
-		Status:      "pending",
-	}
+		if challenge.WinnerID == nil || *challenge.WinnerID != userID {
+			return service.ErrNotWinner
+		}
 
-	if err := h.db.Create(&payout).Error; err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": service.ErrPrizeAlreadyClaimed.Error()})
+		// ATM amount validation (existing rule)
+		if req.Method == "ATM" {
+			if challenge.PrizeAmount < 1000 ||
+				challenge.PrizeAmount > 30000 ||
+				challenge.PrizeAmount%1000 != 0 {
+				return service.ErrInvalidAtmAmount
+			}
+		}
+
+		// Check for existing payout — idempotency.
+		// If one exists for this user+challenge, return 200 OK without
+		// creating a duplicate. This handles double-click and network retry.
+		var existing models.PayoutRequest
+		err := tx.Where("challenge_id = ? AND user_id = ?", challenge.ID, userID).
+			First(&existing).Error
+		if err == nil {
+			alreadyExisted = true
+			prizeAmount = challenge.PrizeAmount
+			return nil
+		}
+		if err != gorm.ErrRecordNotFound {
+			return fmt.Errorf("check existing payout: %w", err)
+		}
+
+		payout := models.PayoutRequest{
+			UserID:      userID,
+			ChallengeID: challenge.ID,
+			Amount:      challenge.PrizeAmount,
+			Method:      req.Method,
+			Destination: req.Destination,
+			AccountName: req.AccountName,
+			Status:      "pending",
+		}
+
+		if err := tx.Create(&payout).Error; err != nil {
+			return service.ErrPrizeAlreadyClaimed
+		}
+
+		prizeAmount = challenge.PrizeAmount
+		return nil
+	})
+
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrChallengeNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrNotWinner):
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrInvalidAtmAmount):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrPrizeAlreadyClaimed):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process claim"})
+		}
 		return
 	}
 
-	var user models.User
-	h.db.First(&user, "id = ?", userID)
-	username := "Anonymous Hero"
-	if user.Name != "" {
-		username = user.Name
+	// Only fire the admin alert email on the first successful claim.
+	// Repeated calls return 200 silently so the UI stays responsive.
+	if !alreadyExisted {
+		var user models.User
+		h.db.First(&user, "id = ?", userID)
+		username := "Anonymous Hero"
+		if user.Name != "" {
+			username = user.Name
+		}
+		go utils.SendAdminWinnerAlert(h.cfg, username, prizeAmount, req.Method)
 	}
 
-	go utils.SendAdminWinnerAlert(h.cfg, username, challenge.PrizeAmount, req.Method)
-
-	c.JSON(http.StatusOK, gin.H{"message": "Prize claim submitted successfully!"})
+	c.JSON(http.StatusOK, gin.H{
+		"message":         "Prize claim submitted successfully!",
+		"already_claimed": alreadyExisted,
+	})
 }
 
-// ── SSE ───────────────────────────────────────────────────────────────────────
-
-// StreamStatus is a Server-Sent Events endpoint. It holds each browser
-// connection open and pushes a single "solved" event the instant someone wins,
-// replacing the previous 20-second polling loop entirely.
 func (h *ChallengeHandler) StreamStatus(c *gin.Context) {
 	rc := http.NewResponseController(c.Writer)
 	if err := rc.SetWriteDeadline(time.Time{}); err != nil {

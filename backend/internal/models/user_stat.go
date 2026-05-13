@@ -15,7 +15,3 @@ type UserStat struct {
 	HintsUnlocked     bool      `gorm:"default:false" json:"hints_unlocked"`
 	LastUpdate        time.Time `gorm:"type:date;not null;index:idx_user_date,unique" json:"last_update"`
 }
-
-type GuessRequest struct {
-	Guess string `json:"guess" binding:"required"`
-}

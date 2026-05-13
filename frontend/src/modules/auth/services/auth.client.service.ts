@@ -1,14 +1,19 @@
-//femabras/frontend/src/modules/auth/services/auth.client.service.ts
+// femabras/frontend/src/modules/auth/services/auth.client.service.ts
+//
+// Migrated to apiFetch which automatically attaches the CSRF token from the
+// double-submit cookie. Without this, every POST returns 403 from the new
+// CSRF middleware on the backend.
+
 import { APIError } from "@/shared/lib/errors";
 import { env } from "@/shared/config/env";
+import { apiFetch } from "@/shared/lib/api.client";
 
 export const authClientService = {
   async login(identifier: string, password: string) {
-    const res = await fetch(`${env.apiUrl}/login`, {
+    const res = await apiFetch(`${env.apiUrl}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier, password }),
-      credentials: "include",
     });
 
     if (!res.ok) {
@@ -19,14 +24,13 @@ export const authClientService = {
   },
 
   async logout() {
-    await fetch(`${env.apiUrl}/logout`, {
+    await apiFetch(`${env.apiUrl}/logout`, {
       method: "POST",
-      credentials: "include",
     });
   },
 
   async register(name: string, email: string, password: string) {
-    const res = await fetch(`${env.apiUrl}/register`, {
+    const res = await apiFetch(`${env.apiUrl}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
@@ -40,11 +44,10 @@ export const authClientService = {
   },
 
   async verifyOTP(userId: string, otp: string) {
-    const res = await fetch(`${env.apiUrl}/verify-otp`, {
+    const res = await apiFetch(`${env.apiUrl}/verify-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: userId, otp }),
-      credentials: "include",
     });
 
     if (!res.ok) {

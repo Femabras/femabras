@@ -1,8 +1,14 @@
-//femabras/frontend/src/modules/challenge/services/challenge.client.service.ts
+// femabras/frontend/src/modules/challenge/services/challenge.client.service.ts
+//
+// submitGuess now goes through apiFetch so the CSRF token is automatically
+// attached. fetchLiveAttempts stays as plain fetch since GET requests are
+// exempt from CSRF (no state change).
+
 import { APIError } from "@/shared/lib/errors";
 import { env } from "@/shared/config/env";
 import { CHALLENGE_CONFIG } from "@/shared/config/constants";
 import { GuessResponse } from "../types";
+import { apiFetch } from "@/shared/lib/api.client";
 
 export const challengeClientService = {
   getTodayAttempts(): number {
@@ -32,11 +38,10 @@ export const challengeClientService = {
   },
 
   async submitGuess(guess: string): Promise<GuessResponse> {
-    const res = await fetch(`${env.apiUrl}/guess`, {
+    const res = await apiFetch(`${env.apiUrl}/guess`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ guess }),
-      credentials: "include",
     });
 
     if (!res.ok) {
@@ -51,6 +56,7 @@ export const challengeClientService = {
   },
 
   async fetchLiveAttempts(): Promise<number> {
+    // GET request — no CSRF token needed, plain fetch is fine
     const res = await fetch(`${env.apiUrl}/challenge/attempts`, {
       method: "GET",
       credentials: "include",

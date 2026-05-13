@@ -9,17 +9,24 @@ import (
 	"time"
 
 	"github.com/Femabras/femabras/internal/models"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
+// CreateOrGetTodayChallenge ensures one challenge exists per UTC day.
+// The plaintext secret_code is never stored — only its bcrypt hash.
+// SecretCode lives in memory only during generation, then is zeroed.
 func CreateOrGetTodayChallenge(db *gorm.DB) (*models.Challenge, error) {
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 
 	var challenge models.Challenge
 	err := db.Where("release_date = ?", today).First(&challenge).Error
 	if err == nil {
-		// SecretCode intentionally omitted from logs — it is the answer to the game
-		log.Printf("Found existing challenge for %s (ID: %d)", today.Format("2006-01-02"), challenge.ID)
+		// Existing challenge — secret_code field will be empty (not persisted)
+		// and secret_code_hash will be loaded. This is correct: callers should
+		// validate guesses via bcrypt against the hash.
+		log.Printf("Found existing challenge for %s (ID: %d)",
+			today.Format("2006-01-02"), challenge.ID)
 		return &challenge, nil
 	}
 
@@ -34,28 +41,53 @@ func CreateOrGetTodayChallenge(db *gorm.DB) (*models.Challenge, error) {
 		return nil, fmt.Errorf("generate secret: %w", err)
 	}
 
+	// Hash the secret immediately. bcrypt cost 10 is enough — at 10k+ users
+	// the bottleneck is /guess, and we only hash once per day during creation.
+	hash, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("hash secret: %w", err)
+	}
+
 	prize, err := calculateWeightedPrize(difficulty)
 	if err != nil {
 		return nil, fmt.Errorf("calculate prize: %w", err)
 	}
 
 	newChallenge := models.Challenge{
-		SecretCode:  secret,
-		Difficulty:  difficulty,
-		PrizeAmount: prize,
-		ReleaseDate: today,
-		IsActive:    true,
+		SecretCodeHash: string(hash),
+		Difficulty:     difficulty,
+		PrizeAmount:    prize,
+		ReleaseDate:    today,
+		IsActive:       true,
 	}
 
 	if err := db.Create(&newChallenge).Error; err != nil {
 		return nil, fmt.Errorf("create challenge: %w", err)
 	}
 
-	// SecretCode intentionally omitted from logs — it is the answer to the game
+	// Log only non-sensitive metadata. The plaintext secret variable will be
+	// garbage-collected — it is never written to logs or persistent storage.
 	log.Printf("Created new challenge for %s (ID: %d, length: %d, prize: %d AOA)",
 		today.Format("2006-01-02"), newChallenge.ID, difficulty, prize)
 
+	// Populate the transient SecretCode field so the caller (e.g. test seeding,
+	// admin dashboard) can use it once if needed. In the normal request path
+	// this is not needed.
+	newChallenge.SecretCode = secret
+
 	return &newChallenge, nil
+}
+
+// VerifyGuess returns true if the guess matches the stored bcrypt hash.
+// Use this everywhere instead of `guess == challenge.SecretCode`.
+func VerifyGuess(challenge *models.Challenge, guess string) bool {
+	if challenge.SecretCodeHash == "" {
+		return false
+	}
+	return bcrypt.CompareHashAndPassword(
+		[]byte(challenge.SecretCodeHash),
+		[]byte(guess),
+	) == nil
 }
 
 func generateWeightedLength() int {

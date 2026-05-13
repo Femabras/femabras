@@ -7,10 +7,8 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Button } from "@/shared/components/ui/button";
 import { env } from "@/shared/config/env";
+import { apiFetch } from "@/shared/lib/api.client";
 
-// Inline type — the contact page is a client component and can't import the
-// server-only dictionary loader. Strings are duplicated from pages.* keys
-// to keep this self-contained.
 type ContactDict = {
   contactTitle: string;
   contactSubtitle: string;
@@ -79,7 +77,9 @@ export default function ContactPage() {
     const message = formData.get("message") as string;
 
     try {
-      const res = await fetch(`${env.apiUrl}/contact`, {
+      // apiFetch attaches the CSRF token automatically — without this the
+      // backend's CSRF middleware returns 403 on every POST.
+      const res = await apiFetch(`${env.apiUrl}/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, message }),

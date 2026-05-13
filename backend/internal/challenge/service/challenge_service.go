@@ -44,11 +44,15 @@ func (s *challengeService) ProcessGuess(ctx context.Context, userID string, gues
 			return ErrChallengeNotFound
 		}
 
-		if len(guess) != len(challenge.SecretCode) {
-			return ErrInvalidAtmAmount // reuse as generic validation — see handler
+		// Length validation: derive expected length from Difficulty, not from
+		// the now-removed plaintext SecretCode. Difficulty is the digit count.
+		if len(guess) != challenge.Difficulty {
+			return ErrInvalidGuessLength
 		}
 
-		if guess == challenge.SecretCode {
+		// Bcrypt comparison instead of string equality.
+		// Constant-time by design — no timing oracle on the secret.
+		if services.VerifyGuess(challenge, guess) {
 			status = "success"
 			services.LockOnSuccess(ctx, userID, todayStr)
 
@@ -84,5 +88,4 @@ func (s *challengeService) ProcessGuess(ctx context.Context, userID string, gues
 	return status, remaining, nil
 }
 
-// Keep models imported to avoid unused import error during migration
 var _ = models.PayoutRequest{}

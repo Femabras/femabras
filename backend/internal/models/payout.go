@@ -14,9 +14,3 @@ type PayoutRequest struct {
 	Status      string `gorm:"default:'pending'"`
 	AdminNotes  string
 }
-
-type ClaimRequest struct {
-	Method      string `json:"method" binding:"required"`
-	Destination string `json:"destination" binding:"required"`
-	AccountName string `json:"account_name"`
-}
